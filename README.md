@@ -1,6 +1,8 @@
-# Agent Orchestrator Dashboard
+# NA Agent Dashboard
 
-A real-time monitoring and control dashboard for AI agents running locally. Built with React, Node.js, TypeScript, and Socket.IO.
+## 🤖 Unified Agent Management & Monitoring Platform
+
+A comprehensive dashboard for managing, monitoring, and deploying AI agents across AWS infrastructure (EC2, ECS, Batch) with real-time communication capabilities.
 
 ## Features
 
