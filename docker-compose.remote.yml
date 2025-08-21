@@ -1,0 +1,178 @@
+version: '3.8'
+
+# Remote/Production configuration for AWS deployment
+services:
+  api:
+    image: ${ECR_REGISTRY}/na-agent-dashboard-api:${VERSION:-latest}
+    container_name: na-agent-dashboard-api
+    ports:
+      - "4001:4001"
+    environment:
+      - NODE_ENV=production
+      - PORT=4001
+      - CORS_ORIGIN=${FRONTEND_URL:-https://agent-dashboard.niroagent.com}
+      # AWS IAM Role (uses instance profile in production)
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+      # Secrets from AWS Secrets Manager
+      - USE_AWS_SECRETS=true
+      - SECRETS_PREFIX=/na-agent-dashboard/
+      # GitHub integration
+      - GITHUB_SECRET_NAME=github-agent-token
+      - GITHUB_WEBHOOK_SECRET_NAME=github-webhook-secret
+      - GITHUB_REPO=${GITHUB_REPO:-NiroAgent/na-business-service}
+      # AI integration
+      - ANTHROPIC_SECRET_NAME=anthropic-api-key
+      # Agent configuration
+      - AGENT_EC2_INSTANCE_ID=${AGENT_EC2_INSTANCE_ID:-i-0af59b7036f7b0b77}
+      - ENABLE_REAL_AWS=true
+      - ENABLE_LIVE_AGENTS=true
+      # Monitoring
+      - ENABLE_CLOUDWATCH=true
+      - LOG_GROUP=/aws/ecs/na-agent-dashboard
+    networks:
+      - agent-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+  mfe:
+    image: ${ECR_REGISTRY}/na-agent-dashboard-mfe:${VERSION:-latest}
+    container_name: na-agent-dashboard-mfe
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - VITE_API_URL=${API_URL:-https://api.agent-dashboard.niroagent.com}
+      - VITE_WS_URL=${WS_URL:-wss://api.agent-dashboard.niroagent.com}
+      - VITE_ENV=production
+    depends_on:
+      - api
+    networks:
+      - agent-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # Agent orchestrator for managing multiple agents
+  agent-orchestrator:
+    image: ${ECR_REGISTRY}/na-agent-orchestrator:${VERSION:-latest}
+    container_name: na-agent-orchestrator
+    environment:
+      - NODE_ENV=production
+      - API_URL=http://api:4001
+      - USE_AWS_SECRETS=true
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+      # GitHub Copilot with Sonnet configuration
+      - ENABLE_GITHUB_COPILOT=true
+      - COPILOT_MODEL=claude-sonnet-4
+      - GITHUB_SECRET_NAME=github-agent-token
+      - ANTHROPIC_SECRET_NAME=anthropic-api-key
+      # Agent management
+      - MAX_AGENTS=50
+      - AGENT_TIMEOUT=3600
+      - ENABLE_AUTO_SCALING=true
+    depends_on:
+      - api
+    networks:
+      - agent-network
+    restart: always
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G
+        reservations:
+          cpus: '2'
+          memory: 2G
+
+  # Voice/Chat interface service
+  chat-voice-service:
+    image: ${ECR_REGISTRY}/na-chat-voice-service:${VERSION:-latest}
+    container_name: na-chat-voice-service
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    environment:
+      - NODE_ENV=production
+      - API_URL=http://api:4001
+      - USE_AWS_SECRETS=true
+      # Voice services
+      - ENABLE_VOICE=true
+      - VOICE_PROVIDER=aws-polly
+      - SPEECH_TO_TEXT_PROVIDER=aws-transcribe
+      # Chat services
+      - ENABLE_CHAT=true
+      - CHAT_PROVIDER=websocket
+      # Oversight features
+      - ENABLE_INTERRUPT=true
+      - ENABLE_PRIORITY_OVERRIDE=true
+      - ENABLE_EMERGENCY_STOP=true
+    depends_on:
+      - api
+    networks:
+      - agent-network
+    restart: always
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: na-agent-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+      - mfe
+      - chat-voice-service
+    networks:
+      - agent-network
+    restart: always
+
+  # CloudWatch agent for monitoring
+  cloudwatch-agent:
+    image: amazon/cloudwatch-agent:latest
+    container_name: na-cloudwatch-agent
+    environment:
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+    volumes:
+      - ./cloudwatch/config.json:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json:ro
+    networks:
+      - agent-network
+    restart: always
+
+networks:
+  agent-network:
+    driver: overlay
+    attachable: true
+    ipam:
+      config:
+        - subnet: 10.0.0.0/16
+
+volumes:
+  agent-data:
+    driver: aws-ebs
+    driver_opts:
+      size: 100
+      type: gp3
+      encrypted: "true"

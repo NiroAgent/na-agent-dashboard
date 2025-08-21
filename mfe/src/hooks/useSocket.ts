@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import toast from 'react-hot-toast';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001';
+const SOCKET_URL = (import.meta as any).env?.VITE_SOCKET_URL || 'http://localhost:4001';
 
 export const useSocket = () => {
   const [socket, setSocket] = useState<Socket | null>(null);

@@ -1,0 +1,2 @@
+The following is the initial dashboard design with mock data. find the front end code for this and use it. replace the mock data with real data from the server, agents and aws environment. 
+![alt text](image.png)

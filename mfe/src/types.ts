@@ -1,10 +1,31 @@
 export interface Agent {
   id: string;
   name: string;
-  description: string;
-  script: string;
-  args: string[];
-  status: 'running' | 'stopped' | 'error' | 'starting';
+  type: 'architect' | 'developer' | 'devops' | 'qa' | 'manager' | 'security' | 'coordinator' | 'chat-voice';
+  status: 'idle' | 'busy' | 'offline';
+  platform: 'ec2' | 'ecs' | 'batch' | 'local';
+  instanceId?: string;
+  taskArn?: string;
+  jobId?: string;
+  lastSeen: Date;
+  currentTask?: string;
+  capabilities: string[];
+  metrics: {
+    tasksCompleted: number;
+    successRate: number;
+    averageResponseTime: number;
+    cpuUsage?: number;
+    memoryUsage?: number;
+  };
+  cost?: {
+    hourly: number;
+    daily: number;
+    monthly: number;
+  };
+  // Legacy fields for compatibility
+  description?: string;
+  script?: string;
+  args?: string[];
   pid?: number;
   startTime?: Date;
   lastError?: string;

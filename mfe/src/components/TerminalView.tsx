@@ -34,7 +34,7 @@ const TerminalView: React.FC<TerminalViewProps> = ({ agentId, socket }) => {
         foreground: '#00ff88',
         cursor: '#00ff88',
         cursorAccent: '#0a0a0a',
-        selection: 'rgba(0, 255, 136, 0.3)',
+        selectionBackground: 'rgba(0, 255, 136, 0.3)',
         black: '#000000',
         red: '#ff4444',
         green: '#00ff88',

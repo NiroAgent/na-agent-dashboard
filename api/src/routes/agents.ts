@@ -17,7 +17,7 @@ router.get('/:id', (req, res) => {
     return res.status(404).json({ error: 'Agent not found' });
   }
   
-  res.json(agent);
+  return res.json(agent);
 });
 
 router.post('/:id/start', async (req, res) => {
@@ -28,7 +28,7 @@ router.post('/:id/start', async (req, res) => {
     return res.status(400).json(result);
   }
   
-  res.json(result);
+  return res.json(result);
 });
 
 router.post('/:id/stop', async (req, res) => {
@@ -39,13 +39,13 @@ router.post('/:id/stop', async (req, res) => {
     return res.status(400).json(result);
   }
   
-  res.json(result);
+  return res.json(result);
 });
 
 router.post('/:id/restart', async (req, res) => {
   const agentManager: AgentManager = req.app.locals.agentManager;
   const result = await agentManager.restartAgent(req.params.id);
-  res.json(result);
+  return res.json(result);
 });
 
 router.get('/status/summary', (req, res) => {

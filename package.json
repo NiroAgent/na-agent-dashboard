@@ -21,9 +21,16 @@
     "start:frontend": "cd frontend && npm run preview"
   },
   "devDependencies": {
-    "concurrently": "^7.6.0"
+    "@playwright/test": "^1.55.0",
+    "concurrently": "^7.6.0",
+    "playwright": "^1.55.0"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-ssm": "^3.872.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0"
   }
 }

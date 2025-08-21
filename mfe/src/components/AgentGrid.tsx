@@ -39,8 +39,27 @@ const AgentGrid: React.FC<AgentGridProps> = ({
   onRestart,
   onViewTerminal
 }) => {
+  // Map backend status to frontend status
+  const mapStatus = (backendStatus: string): 'running' | 'stopped' | 'error' | 'starting' => {
+    switch (backendStatus) {
+      case 'idle':
+        return 'running';
+      case 'busy':
+        return 'running';
+      case 'offline':
+        return 'stopped';
+      case 'error':
+        return 'error';
+      case 'starting':
+        return 'starting';
+      default:
+        return 'stopped';
+    }
+  };
+
   const getStatusIcon = (status: string) => {
-    switch (status) {
+    const mappedStatus = mapStatus(status);
+    switch (mappedStatus) {
       case 'running':
         return <RunningIcon sx={{ color: '#00ff88' }} />;
       case 'stopped':
@@ -55,7 +74,8 @@ const AgentGrid: React.FC<AgentGridProps> = ({
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    const mappedStatus = mapStatus(status);
+    switch (mappedStatus) {
       case 'running':
         return 'success';
       case 'stopped':
@@ -82,10 +102,11 @@ const AgentGrid: React.FC<AgentGridProps> = ({
       {agents.map((agent) => (
         <Grid item xs={12} sm={6} md={4} lg={3} key={agent.id}>
           <Card 
+            data-testid="agent-card"
             sx={{ 
               background: 'linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%)',
               border: '1px solid',
-              borderColor: agent.status === 'running' ? '#00ff88' : '#333',
+              borderColor: mapStatus(agent.status) === 'running' ? '#00ff88' : '#333',
               transition: 'all 0.3s ease',
               '&:hover': {
                 transform: 'translateY(-2px)',
@@ -97,8 +118,9 @@ const AgentGrid: React.FC<AgentGridProps> = ({
               <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
                 {getStatusIcon(agent.status)}
                 <Chip 
-                  label={agent.status.toUpperCase()} 
+                  label={mapStatus(agent.status).toUpperCase()} 
                   size="small"
+                  data-testid="agent-status"
                   color={getStatusColor(agent.status) as any}
                   sx={{ fontWeight: 'bold' }}
                 />
@@ -107,6 +129,7 @@ const AgentGrid: React.FC<AgentGridProps> = ({
               <Typography 
                 variant="h6" 
                 gutterBottom
+                data-testid="agent-name"
                 sx={{ 
                   color: getAgentTypeColor(agent),
                   fontWeight: 'bold',
@@ -121,41 +144,41 @@ const AgentGrid: React.FC<AgentGridProps> = ({
                 color="text.secondary" 
                 sx={{ mb: 1, minHeight: '40px' }}
               >
-                {agent.description}
+                {agent.name} - {agent.type} agent ({agent.platform})
               </Typography>
 
-              {agent.status === 'running' && (
+              {mapStatus(agent.status) === 'running' && (
                 <Box sx={{ mt: 1 }}>
                   <Typography variant="caption" color="text.secondary">
-                    PID: {agent.pid || 'N/A'}
+                    Instance: {agent.instanceId || 'N/A'}
                   </Typography>
-                  {agent.cpu !== undefined && (
+                  {agent.metrics?.cpuUsage !== undefined && (
                     <Box sx={{ mt: 1 }}>
-                      <Typography variant="caption">CPU: {agent.cpu.toFixed(1)}%</Typography>
+                      <Typography variant="caption">CPU: {agent.metrics.cpuUsage.toFixed(1)}%</Typography>
                       <LinearProgress 
                         variant="determinate" 
-                        value={Math.min(agent.cpu, 100)}
+                        value={Math.min(agent.metrics.cpuUsage, 100)}
                         sx={{ 
                           height: 4, 
                           backgroundColor: '#333',
                           '& .MuiLinearProgress-bar': {
-                            backgroundColor: agent.cpu > 80 ? '#ff4444' : '#00ff88'
+                            backgroundColor: agent.metrics.cpuUsage > 80 ? '#ff4444' : '#00ff88'
                           }
                         }}
                       />
                     </Box>
                   )}
-                  {agent.memory !== undefined && (
+                  {agent.metrics?.memoryUsage !== undefined && (
                     <Box sx={{ mt: 1 }}>
-                      <Typography variant="caption">Memory: {agent.memory.toFixed(1)}%</Typography>
+                      <Typography variant="caption">Memory: {agent.metrics.memoryUsage.toFixed(1)}%</Typography>
                       <LinearProgress 
                         variant="determinate" 
-                        value={Math.min(agent.memory, 100)}
+                        value={Math.min(agent.metrics.memoryUsage, 100)}
                         sx={{ 
                           height: 4,
                           backgroundColor: '#333',
                           '& .MuiLinearProgress-bar': {
-                            backgroundColor: agent.memory > 80 ? '#ff4444' : '#00ff88'
+                            backgroundColor: agent.metrics.memoryUsage > 80 ? '#ff4444' : '#00ff88'
                           }
                         }}
                       />
@@ -164,7 +187,7 @@ const AgentGrid: React.FC<AgentGridProps> = ({
                 </Box>
               )}
 
-              {agent.status === 'error' && agent.lastError && (
+              {mapStatus(agent.status) === 'error' && agent.lastError && (
                 <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
                   Error: {agent.lastError}
                 </Typography>
@@ -173,7 +196,7 @@ const AgentGrid: React.FC<AgentGridProps> = ({
             
             <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
               <Box>
-                {agent.status === 'stopped' && (
+                {mapStatus(agent.status) === 'stopped' && (
                   <Tooltip title="Start Agent">
                     <IconButton 
                       size="small" 
@@ -185,7 +208,7 @@ const AgentGrid: React.FC<AgentGridProps> = ({
                   </Tooltip>
                 )}
                 
-                {agent.status === 'running' && (
+                {mapStatus(agent.status) === 'running' && (
                   <Tooltip title="Stop Agent">
                     <IconButton 
                       size="small" 
@@ -197,7 +220,7 @@ const AgentGrid: React.FC<AgentGridProps> = ({
                   </Tooltip>
                 )}
                 
-                {(agent.status === 'running' || agent.status === 'error') && (
+                {(mapStatus(agent.status) === 'running' || mapStatus(agent.status) === 'error') && (
                   <Tooltip title="Restart Agent">
                     <IconButton 
                       size="small" 
@@ -214,8 +237,8 @@ const AgentGrid: React.FC<AgentGridProps> = ({
                 <IconButton 
                   size="small" 
                   onClick={() => onViewTerminal(agent.id)}
-                  disabled={agent.status !== 'running'}
-                  sx={{ color: agent.status === 'running' ? '#00ff88' : '#666' }}
+                  disabled={mapStatus(agent.status) !== 'running'}
+                  sx={{ color: mapStatus(agent.status) === 'running' ? '#00ff88' : '#666' }}
                 >
                   <TerminalIcon />
                 </IconButton>

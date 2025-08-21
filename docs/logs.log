@@ -1,0 +1,129 @@
+useExternalData.ts:41 🔄 Fetching data from external sources...
+socket__io-client.js?v=6f1a9b7d:1037 WebSocket connection to 'ws://localhost:4001/socket.io/?EIO=4&transport=websocket' failed: WebSocket is closed before the connection is established.
+doClose @ socket__io-client.js?v=6f1a9b7d:1037
+useExternalData.ts:41 🔄 Fetching data from external sources...
+useExternalData.ts:52 ✅ External data fetched successfully: Object
+useExternalData.ts:52 ✅ External data fetched successfully: Object
+socket__io-client.js?v=6f1a9b7d:1061 WebSocket connection to 'ws://localhost:4001/socket.io/?EIO=4&transport=websocket' failed: 
+createSocket @ socket__io-client.js?v=6f1a9b7d:1061
+hook.js:608 MUI: You are providing a disabled `button` child to the Tooltip component.
+A disabled element does not fire events.
+Tooltip needs to listen to the child element's events to display the title.
+
+Add a simple wrapper element, such as a `span`. Error Component Stack
+    at Tooltip2 (@mui_material.js?v=6f1a9b7d:35826:17)
+    at div (<anonymous>)
+    at chunk-JGX7JQ6P.js?v=6f1a9b7d:1676:49
+    at CardActions2 (@mui_material.js?v=6f1a9b7d:17008:17)
+    at div (<anonymous>)
+    at chunk-JGX7JQ6P.js?v=6f1a9b7d:1676:49
+    at Paper2 (@mui_material.js?v=6f1a9b7d:5647:17)
+    at chunk-JGX7JQ6P.js?v=6f1a9b7d:1676:49
+    at Card2 (@mui_material.js?v=6f1a9b7d:16788:17)
+    at div (<anonymous>)
+    at chunk-JGX7JQ6P.js?v=6f1a9b7d:1676:49
+    at Grid3 (@mui_material.js?v=6f1a9b7d:23133:22)
+    at div (<anonymous>)
+    at chunk-JGX7JQ6P.js?v=6f1a9b7d:1676:49
+    at Grid3 (@mui_material.js?v=6f1a9b7d:23133:22)
+    at AgentGrid (AgentGrid.tsx:36:3)
+    at div (<anonymous>)
+    at chunk-JGX7JQ6P.js?v=6f1a9b7d:1676:49
+    at Paper2 (@mui_material.js?v=6f1a9b7d:5647:17)
+    at div (<anonymous>)
+    at chunk-JGX7JQ6P.js?v=6f1a9b7d:1676:49
+    at Grid3 (@mui_material.js?v=6f1a9b7d:23133:22)
+    at div (<anonymous>)
+    at chunk-JGX7JQ6P.js?v=6f1a9b7d:1676:49
+    at Grid3 (@mui_material.js?v=6f1a9b7d:23133:22)
+    at div (<anonymous>)
+    at chunk-JGX7JQ6P.js?v=6f1a9b7d:1676:49
+    at Container4 (@mui_material.js?v=6f1a9b7d:2377:19)
+    at div (<anonymous>)
+    at chunk-JGX7JQ6P.js?v=6f1a9b7d:1676:49
+    at Box4 (@mui_material.js?v=6f1a9b7d:728:19)
+    at DefaultPropsProvider (chunk-JGX7JQ6P.js?v=6f1a9b7d:8931:3)
+    at RtlProvider (@mui_material.js?v=6f1a9b7d:1398:5)
+    at ThemeProvider (@mui_material.js?v=6f1a9b7d:1350:15)
+    at ThemeProvider2 (@mui_material.js?v=6f1a9b7d:1483:15)
+    at ThemeProvider3 (@mui_material.js?v=6f1a9b7d:3537:12)
+    at App (App.tsx:65:31)
+overrideMethod @ hook.js:608
+hook.js:608 Socket connection error: TransportError: websocket error
+    at WS.onError (socket__io-client.js?v=6f1a9b7d:497:33)
+    at ws.onerror (socket__io-client.js?v=6f1a9b7d:1012:35)
+overrideMethod @ hook.js:608
+:5173/vite.svg:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+socket__io-client.js?v=6f1a9b7d:1061 WebSocket connection to 'ws://localhost:4001/socket.io/?EIO=4&transport=websocket' failed: 
+createSocket @ socket__io-client.js?v=6f1a9b7d:1061
+hook.js:608 Socket connection error: TransportError: websocket error
+    at WS.onError (socket__io-client.js?v=6f1a9b7d:497:33)
+    at ws.onerror (socket__io-client.js?v=6f1a9b7d:1012:35)
+overrideMethod @ hook.js:608
+socket__io-client.js?v=6f1a9b7d:1061 WebSocket connection to 'ws://localhost:4001/socket.io/?EIO=4&transport=websocket' failed: 
+createSocket @ socket__io-client.js?v=6f1a9b7d:1061
+hook.js:608 Socket connection error: TransportError: websocket error
+    at WS.onError (socket__io-client.js?v=6f1a9b7d:497:33)
+    at ws.onerror (socket__io-client.js?v=6f1a9b7d:1012:35)
+overrideMethod @ hook.js:608
+EnhancedAgentGrid.tsx:167 Uncaught TypeError: Cannot read properties of undefined (reading 'recentViolations')
+    at EnhancedAgentGrid.tsx:167:43
+    at Array.map (<anonymous>)
+    at EnhancedAgentGrid (EnhancedAgentGrid.tsx:141:15)
+    at renderWithHooks (chunk-42QMLU5Q.js?v=6f1a9b7d:11568:26)
+    at mountIndeterminateComponent (chunk-42QMLU5Q.js?v=6f1a9b7d:14946:21)
+    at beginWork (chunk-42QMLU5Q.js?v=6f1a9b7d:15934:22)
+    at HTMLUnknownElement.callCallback2 (chunk-42QMLU5Q.js?v=6f1a9b7d:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-42QMLU5Q.js?v=6f1a9b7d:3699:24)
+    at invokeGuardedCallback (chunk-42QMLU5Q.js?v=6f1a9b7d:3733:39)
+    at beginWork$1 (chunk-42QMLU5Q.js?v=6f1a9b7d:19793:15)
+EnhancedAgentGrid.tsx:167 Uncaught TypeError: Cannot read properties of undefined (reading 'recentViolations')
+    at EnhancedAgentGrid.tsx:167:43
+    at Array.map (<anonymous>)
+    at EnhancedAgentGrid (EnhancedAgentGrid.tsx:141:15)
+    at renderWithHooks (chunk-42QMLU5Q.js?v=6f1a9b7d:11568:26)
+    at mountIndeterminateComponent (chunk-42QMLU5Q.js?v=6f1a9b7d:14946:21)
+    at beginWork (chunk-42QMLU5Q.js?v=6f1a9b7d:15934:22)
+    at HTMLUnknownElement.callCallback2 (chunk-42QMLU5Q.js?v=6f1a9b7d:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-42QMLU5Q.js?v=6f1a9b7d:3699:24)
+    at invokeGuardedCallback (chunk-42QMLU5Q.js?v=6f1a9b7d:3733:39)
+    at beginWork$1 (chunk-42QMLU5Q.js?v=6f1a9b7d:19793:15)
+hook.js:608 The above error occurred in the <EnhancedAgentGrid> component:
+
+    at EnhancedAgentGrid (http://localhost:5173/src/components/EnhancedAgentGrid.tsx:20:3)
+    at div
+    at http://localhost:5173/node_modules/.vite/deps/chunk-JGX7JQ6P.js?v=6f1a9b7d:1676:49
+    at Paper2 (http://localhost:5173/node_modules/.vite/deps/@mui_material.js?v=6f1a9b7d:5647:17)
+    at div
+    at http://localhost:5173/node_modules/.vite/deps/chunk-JGX7JQ6P.js?v=6f1a9b7d:1676:49
+    at Grid3 (http://localhost:5173/node_modules/.vite/deps/@mui_material.js?v=6f1a9b7d:23133:22)
+    at div
+    at http://localhost:5173/node_modules/.vite/deps/chunk-JGX7JQ6P.js?v=6f1a9b7d:1676:49
+    at Grid3 (http://localhost:5173/node_modules/.vite/deps/@mui_material.js?v=6f1a9b7d:23133:22)
+    at div
+    at http://localhost:5173/node_modules/.vite/deps/chunk-JGX7JQ6P.js?v=6f1a9b7d:1676:49
+    at Container4 (http://localhost:5173/node_modules/.vite/deps/@mui_material.js?v=6f1a9b7d:2377:19)
+    at div
+    at http://localhost:5173/node_modules/.vite/deps/chunk-JGX7JQ6P.js?v=6f1a9b7d:1676:49
+    at Box4 (http://localhost:5173/node_modules/.vite/deps/@mui_material.js?v=6f1a9b7d:728:19)
+    at DefaultPropsProvider (http://localhost:5173/node_modules/.vite/deps/chunk-JGX7JQ6P.js?v=6f1a9b7d:8931:3)
+    at RtlProvider (http://localhost:5173/node_modules/.vite/deps/@mui_material.js?v=6f1a9b7d:1398:5)
+    at ThemeProvider (http://localhost:5173/node_modules/.vite/deps/@mui_material.js?v=6f1a9b7d:1350:15)
+    at ThemeProvider2 (http://localhost:5173/node_modules/.vite/deps/@mui_material.js?v=6f1a9b7d:1483:15)
+    at ThemeProvider3 (http://localhost:5173/node_modules/.vite/deps/@mui_material.js?v=6f1a9b7d:3537:12)
+    at App (http://localhost:5173/src/App.tsx:50:31)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+overrideMethod @ hook.js:608
+chunk-42QMLU5Q.js?v=6f1a9b7d:9145 Uncaught TypeError: Cannot read properties of undefined (reading 'recentViolations')
+    at EnhancedAgentGrid.tsx:167:43
+    at Array.map (<anonymous>)
+    at EnhancedAgentGrid (EnhancedAgentGrid.tsx:141:15)
+    at renderWithHooks (chunk-42QMLU5Q.js?v=6f1a9b7d:11568:26)
+    at mountIndeterminateComponent (chunk-42QMLU5Q.js?v=6f1a9b7d:14946:21)
+    at beginWork (chunk-42QMLU5Q.js?v=6f1a9b7d:15934:22)
+    at beginWork$1 (chunk-42QMLU5Q.js?v=6f1a9b7d:19781:22)
+    at performUnitOfWork (chunk-42QMLU5Q.js?v=6f1a9b7d:19226:20)
+    at workLoopSync (chunk-42QMLU5Q.js?v=6f1a9b7d:19165:13)
+    at renderRootSync (chunk-42QMLU5Q.js?v=6f1a9b7d:19144:15)

@@ -1,0 +1,153 @@
+version: '3.8'
+
+# Local development configuration with full AWS access
+services:
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+      target: development
+    container_name: na-agent-dashboard-api-local
+    ports:
+      - "4001:4001"
+    environment:
+      - NODE_ENV=development
+      - PORT=4001
+      - CORS_ORIGIN=http://localhost:5173
+      # AWS credentials for local testing
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
+      # GitHub integration
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
+      - GITHUB_REPO=${GITHUB_REPO:-NiroAgent/na-business-service}
+      # AI integration
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # Agent configuration
+      - AGENT_EC2_INSTANCE_ID=${AGENT_EC2_INSTANCE_ID:-i-0af59b7036f7b0b77}
+      - ENABLE_REAL_AWS=true
+      - ENABLE_LIVE_AGENTS=true
+    volumes:
+      - ./api/src:/app/src
+      - ./api/package.json:/app/package.json
+      - ./api/tsconfig.json:/app/tsconfig.json
+      - agent-logs:/app/logs
+    networks:
+      - agent-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    command: npm run dev
+
+  mfe:
+    build:
+      context: ./mfe
+      dockerfile: Dockerfile
+      target: development
+    container_name: na-agent-dashboard-mfe-local
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:4001
+      - VITE_WS_URL=ws://localhost:4001
+      - VITE_ENV=development
+    volumes:
+      - ./mfe/src:/app/src
+      - ./mfe/public:/app/public
+      - ./mfe/package.json:/app/package.json
+      - ./mfe/vite.config.ts:/app/vite.config.ts
+    depends_on:
+      - api
+    networks:
+      - agent-network
+    restart: unless-stopped
+    command: npm run dev -- --host
+
+  # Local agent simulator for testing without AWS
+  agent-simulator:
+    build:
+      context: ./agent-simulator
+      dockerfile: Dockerfile
+    container_name: na-agent-simulator
+    environment:
+      - SIMULATOR_MODE=local
+      - API_URL=http://api:4001
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    depends_on:
+      - api
+    networks:
+      - agent-network
+    restart: unless-stopped
+    volumes:
+      - agent-data:/app/data
+
+  # Local database for testing
+  postgres:
+    image: postgres:15-alpine
+    container_name: na-agent-db-local
+    environment:
+      - POSTGRES_DB=agent_dashboard
+      - POSTGRES_USER=agent_user
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-localpass123}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - agent-network
+    restart: unless-stopped
+
+  # Redis for caching and session management
+  redis:
+    image: redis:7-alpine
+    container_name: na-agent-redis-local
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - agent-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # LocalStack for AWS service simulation
+  localstack:
+    image: localstack/localstack:latest
+    container_name: na-agent-localstack
+    ports:
+      - "4566:4566"
+      - "4571:4571"
+    environment:
+      - SERVICES=ec2,ecs,batch,ssm,s3,secretsmanager,cloudwatch,iam
+      - DEBUG=1
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=us-east-1
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - localstack-data:/tmp/localstack
+    networks:
+      - agent-network
+    restart: unless-stopped
+
+networks:
+  agent-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  agent-data:
+  agent-logs:
+  postgres-data:
+  redis-data:
+  localstack-data:
