@@ -15,8 +15,35 @@ COPY . .
 # Build the application
 RUN npm run build
 
+# Development stage
+FROM node:18-alpine AS development
+
+WORKDIR /app
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev dependencies)
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000 || exit 1
+
+# Start development server
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
+
 # Production stage
-FROM nginx:alpine
+FROM nginx:alpine AS production
 
 # Copy custom nginx config
 COPY nginx.conf /etc/nginx/nginx.conf
