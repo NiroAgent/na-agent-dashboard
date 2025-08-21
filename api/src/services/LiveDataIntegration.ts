@@ -103,16 +103,34 @@ export class LiveDataIntegration {
   private updateInterval: NodeJS.Timeout | null = null;
 
   constructor() {
-    // Initialize AWS services with shared credentials (from AWS CLI configuration)
+    // Initialize AWS services only if credentials are available
     const awsConfig = {
       region: process.env.AWS_REGION || 'us-east-1',
-      // Let AWS SDK use default credential chain (includes shared credentials)
     };
 
-    this.ec2 = new EC2(awsConfig);
-    this.ecs = new ECS(awsConfig);
-    this.batch = new Batch(awsConfig);
-    this.cloudWatch = new CloudWatch(awsConfig);
+    try {
+      // Only initialize AWS services if we have credentials
+      if (process.env.AWS_ACCESS_KEY_ID || process.env.AWS_PROFILE) {
+        this.ec2 = new EC2(awsConfig);
+        this.ecs = new ECS(awsConfig);
+        this.batch = new Batch(awsConfig);
+        this.cloudWatch = new CloudWatch(awsConfig);
+        console.log('AWS services initialized with credentials');
+      } else {
+        console.log('Running in demo mode - AWS services disabled');
+        // Initialize with null to indicate demo mode
+        this.ec2 = null as any;
+        this.ecs = null as any;
+        this.batch = null as any;
+        this.cloudWatch = null as any;
+      }
+    } catch (error) {
+      console.log('AWS initialization failed, running in demo mode:', error);
+      this.ec2 = null as any;
+      this.ecs = null as any;
+      this.batch = null as any;
+      this.cloudWatch = null as any;
+    }
 
     // External API endpoints
     this.externalAPIs = new Map([
@@ -124,6 +142,64 @@ export class LiveDataIntegration {
 
     this.data = this.initializeEmptyData();
     this.startLiveUpdates();
+  }
+
+  // Generate demo agents when AWS is not available
+  private generateDemoAgents(): LiveAgent[] {
+    const agentTypes = [
+      { type: 'architect', count: 5, specializations: ['system_design', 'technical_strategy', 'platform_architecture', 'integration_planning', 'technology_evaluation'] },
+      { type: 'developer', count: 20, specializations: ['frontend_react', 'backend_node', 'backend_python', 'database_optimization', 'api_development'] },
+      { type: 'qa', count: 10, specializations: ['automated_testing', 'performance_testing', 'security_testing', 'manual_testing', 'test_planning'] },
+      { type: 'devops', count: 5, specializations: ['ci_cd_pipelines', 'infrastructure_as_code', 'monitoring_alerting', 'deployment_automation'] },
+      { type: 'manager', count: 5, specializations: ['project_coordination', 'sprint_planning', 'stakeholder_communication', 'resource_allocation'] },
+      { type: 'security', count: 3, specializations: ['vulnerability_assessment', 'security_code_review', 'compliance_auditing'] },
+      { type: 'analytics', count: 2, specializations: ['performance_analytics', 'business_intelligence'] }
+    ];
+
+    const agents: LiveAgent[] = [];
+    let agentIndex = 1;
+
+    for (const agentType of agentTypes) {
+      for (let i = 0; i < agentType.count; i++) {
+        const specialization = agentType.specializations[i % agentType.specializations.length];
+        
+        // Generate realistic metrics
+        const agentMetrics = {
+          cpuUtilization: Math.floor(Math.random() * 100),
+          memoryUtilization: Math.floor(Math.random() * 100),
+          networkIn: Math.floor(Math.random() * 1000000),
+          networkOut: Math.floor(Math.random() * 1000000),
+          diskUsage: Math.floor(Math.random() * 100)
+        };
+
+        const agentCost = {
+          hourly: 0.035,
+          daily: 0.84,
+          monthly: 25.2
+        };
+
+        const statuses: LiveAgent['status'][] = ['running', 'stopped', 'starting'];
+        const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+
+        agents.push({
+          id: `demo-agent-${agentIndex}`,
+          name: `${agentType.type}-${specialization}-${i + 1}`,
+          type: agentType.type,
+          status: randomStatus,
+          platform: 'ec2',
+          instanceId: `i-demo${agentIndex.toString().padStart(8, '0')}`,
+          metrics: agentMetrics,
+          cost: agentCost,
+          launchTime: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000), // Random time in last week
+          lastStatusChange: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000) // Random time in last day
+        });
+        
+        agentIndex++;
+      }
+    }
+
+    console.log(`🎭 Generated ${agents.length} demo agents (AWS services disabled)`);
+    return agents;
   }
 
   private initializeEmptyData(): LiveSystemData {
@@ -151,6 +227,11 @@ export class LiveDataIntegration {
   // Real AWS EC2 instance discovery with detailed agent detection
   async discoverEC2Agents(): Promise<LiveAgent[]> {
     try {
+      // If AWS services are not initialized (demo mode), return simulated agents
+      if (!this.ec2) {
+        return this.generateDemoAgents();
+      }
+
       // Get all running instances, not just tagged ones
       const instances = await this.ec2.describeInstances({
         Filters: [
@@ -269,6 +350,11 @@ export class LiveDataIntegration {
   // Real AWS ECS task discovery
   async discoverECSAgents(): Promise<LiveAgent[]> {
     try {
+      // If AWS services are not initialized (demo mode), return empty array
+      if (!this.ecs) {
+        return [];
+      }
+
       const clusters = await this.ecs.listClusters().promise();
       const agents: LiveAgent[] = [];
 
@@ -311,6 +397,17 @@ export class LiveDataIntegration {
   // Real CloudWatch metrics
   async getCloudWatchMetrics(instanceId: string): Promise<LiveAgent['metrics']> {
     try {
+      // If CloudWatch is not initialized (demo mode), return simulated metrics
+      if (!this.cloudWatch) {
+        return {
+          cpuUtilization: Math.floor(Math.random() * 100),
+          memoryUtilization: Math.floor(Math.random() * 100),
+          networkIn: Math.floor(Math.random() * 1000000),
+          networkOut: Math.floor(Math.random() * 1000000),
+          diskUsage: Math.floor(Math.random() * 100)
+        };
+      }
+
       const endTime = new Date();
       const startTime = new Date(endTime.getTime() - 5 * 60 * 1000); // Last 5 minutes
 

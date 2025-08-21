@@ -1,1 +1,7 @@
 node_modules
+
+# Logs
+*.log
+logs/
+api-logs.txt
+terminaloutput.log
