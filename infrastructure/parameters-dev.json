@@ -1,0 +1,22 @@
+[
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "dev"
+  },
+  {
+    "ParameterKey": "AgentInstanceId",
+    "ParameterValue": "i-0af59b7036f7b0b77"
+  },
+  {
+    "ParameterKey": "ApiPort",
+    "ParameterValue": "7777"
+  },
+  {
+    "ParameterKey": "DomainName",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "CertificateArn",
+    "ParameterValue": ""
+  }
+]

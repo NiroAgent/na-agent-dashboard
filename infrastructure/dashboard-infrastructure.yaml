@@ -1,0 +1,370 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Niro Agent Dashboard Infrastructure - S3 Frontend + API on Agent Server'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+    Description: Deployment environment
+  
+  AgentInstanceId:
+    Type: String
+    Default: i-0af59b7036f7b0b77
+    Description: EC2 instance ID of the agent server
+    
+  ApiPort:
+    Type: Number
+    Default: 7777
+    Description: Port for the API server
+    
+  DomainName:
+    Type: String
+    Default: ""
+    Description: Optional custom domain name for CloudFront
+    
+  CertificateArn:
+    Type: String
+    Default: ""
+    Description: SSL certificate ARN for custom domain
+
+Conditions:
+  HasCustomDomain: !Not [!Equals [!Ref DomainName, ""]]
+  HasCertificate: !Not [!Equals [!Ref CertificateArn, ""]]
+
+Resources:
+  # S3 Bucket for Frontend
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'niro-agent-dashboard-${Environment}-${AWS::AccountId}'
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [GET, HEAD]
+            AllowedOrigins: ['*']
+            MaxAge: 3600
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: NiroAgentDashboard
+        - Key: Component
+          Value: Frontend
+
+  # S3 Bucket Policy for CloudFront OAC Access
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Statement:
+          - Sid: AllowCloudFrontServicePrincipal
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${FrontendBucket}/*'
+            Condition:
+              StringEquals:
+                'AWS:SourceArn': !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}'
+
+  # CloudFront Origin Access Control
+  CloudFrontOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub 'OAC for ${Environment} Niro Agent Dashboard'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+        Description: !Sub 'Origin Access Control for ${Environment} Niro Agent Dashboard'
+
+  # CloudFront Distribution
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Aliases: !If [HasCustomDomain, [!Ref DomainName], !Ref 'AWS::NoValue']
+        ViewerCertificate: !If
+          - HasCertificate
+          - AcmCertificateArn: !Ref CertificateArn
+            SslSupportMethod: sni-only
+            MinimumProtocolVersion: TLSv1.2_2021
+          - CloudFrontDefaultCertificate: true
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt CloudFrontOAC.Id
+            S3OriginConfig: {}
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6  # Managed-CachingOptimized
+          OriginRequestPolicyId: 88a5eaf4-2fd4-4709-b370-b4c650ea3fcf  # Managed-CORS-S3Origin
+          ResponseHeadersPolicyId: 5cc3b908-e619-4b99-88e5-2cf7f45965bd  # Managed-SecurityHeadersPolicy
+        DefaultRootObject: index.html
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+        Enabled: true
+        HttpVersion: http2
+        PriceClass: PriceClass_100
+        Comment: !Sub 'Niro Agent Dashboard ${Environment}'
+        Tags:
+          - Key: Environment
+            Value: !Ref Environment
+          - Key: Project
+            Value: NiroAgentDashboard
+          - Key: Component
+            Value: CDN
+
+  # Lambda function to get instance information
+  GetInstanceInfoFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'niro-dashboard-get-instance-info-${Environment}'
+      Runtime: python3.9
+      Handler: index.handler
+      Role: !GetAtt GetInstanceInfoRole.Arn
+      Timeout: 60
+      Code:
+        ZipFile: |
+          import boto3
+          import json
+          import cfnresponse
+          
+          def handler(event, context):
+              try:
+                  ec2 = boto3.client('ec2')
+                  instance_id = event['ResourceProperties']['InstanceId']
+                  
+                  response = ec2.describe_instances(InstanceIds=[instance_id])
+                  instance = response['Reservations'][0]['Instances'][0]
+                  
+                  # Get the first security group
+                  security_group_id = instance['SecurityGroups'][0]['GroupId']
+                  
+                  # Add ingress rule for API port
+                  try:
+                      ec2.authorize_security_group_ingress(
+                          GroupId=security_group_id,
+                          IpPermissions=[{
+                              'IpProtocol': 'tcp',
+                              'FromPort': int(event['ResourceProperties']['ApiPort']),
+                              'ToPort': int(event['ResourceProperties']['ApiPort']),
+                              'IpRanges': [{'CidrIp': '0.0.0.0/0', 'Description': 'Dashboard API access'}]
+                          }]
+                      )
+                  except ec2.exceptions.ClientError as e:
+                      if 'InvalidPermission.Duplicate' not in str(e):
+                          raise
+                  
+                  data = {
+                      'PublicIpAddress': instance.get('PublicIpAddress', ''),
+                      'PrivateIpAddress': instance.get('PrivateIpAddress', ''),
+                      'SecurityGroupId': security_group_id,
+                      'VpcId': instance.get('VpcId', '')
+                  }
+                  
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, data)
+              except Exception as e:
+                  print(f"Error: {str(e)}")
+                  cfnresponse.send(event, context, cfnresponse.FAILED, {})
+
+  # IAM Role for GitHub Actions Deployment
+  GitHubActionsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'NiroAgentDashboard-GitHubActions-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Sub 'arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com'
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                'token.actions.githubusercontent.com:aud': sts.amazonaws.com
+              StringLike:
+                'token.actions.githubusercontent.com:sub': 'repo:NiroAgent/na-agent-dashboard:*'
+      Policies:
+        - PolicyName: DeploymentPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
+                  - s3:PutBucketWebsite
+                  - s3:GetBucketWebsite
+                Resource:
+                  - !Sub '${FrontendBucket}/*'
+                  - !GetAtt FrontendBucket.Arn
+              - Effect: Allow
+                Action:
+                  - cloudfront:CreateInvalidation
+                  - cloudfront:GetDistribution
+                  - cloudfront:ListDistributions
+                Resource: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}'
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeInstances
+                  - ec2:DescribeSecurityGroups
+                  - ssm:SendCommand
+                  - ssm:GetCommandInvocation
+                  - ssm:DescribeInstanceInformation
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*'
+
+  # SSM Parameter for API Endpoint
+  ApiEndpointParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub '/niro-agent-dashboard/${Environment}/api-endpoint'
+      Type: String
+      Value: !Sub
+        - 'http://${PublicIp}:${ApiPort}'
+        - PublicIp: !GetAtt AgentInstanceInfo.PublicIpAddress
+      Description: API endpoint for the dashboard
+      Tags:
+        Environment: !Ref Environment
+        Project: NiroAgentDashboard
+
+  # Custom Resource to get Agent Instance Info
+  AgentInstanceInfo:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken: !GetAtt GetInstanceInfoFunction.Arn
+      InstanceId: !Ref AgentInstanceId
+      ApiPort: !Ref ApiPort
+
+  # Lambda function to get instance information
+  GetInstanceInfoFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'niro-dashboard-get-instance-info-${Environment}'
+      Runtime: python3.9
+      Handler: index.handler
+      Role: !GetAtt GetInstanceInfoRole.Arn
+      Timeout: 60
+      Code:
+        ZipFile: |
+          import boto3
+          import json
+          import cfnresponse
+          
+          def handler(event, context):
+              try:
+                  ec2 = boto3.client('ec2')
+                  instance_id = event['ResourceProperties']['InstanceId']
+                  
+                  response = ec2.describe_instances(InstanceIds=[instance_id])
+                  instance = response['Reservations'][0]['Instances'][0]
+                  
+                  data = {
+                      'PublicIpAddress': instance.get('PublicIpAddress', ''),
+                      'PrivateIpAddress': instance.get('PrivateIpAddress', ''),
+                      'SecurityGroups': [sg['GroupId'] for sg in instance['SecurityGroups']],
+                      'VpcId': instance.get('VpcId', '')
+                  }
+                  
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, data)
+              except Exception as e:
+                  print(f"Error: {str(e)}")
+                  cfnresponse.send(event, context, cfnresponse.FAILED, {})
+
+  # IAM Role for Lambda function
+  GetInstanceInfoRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: EC2ManagementPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeInstances
+                  - ec2:DescribeSecurityGroups
+                  - ec2:AuthorizeSecurityGroupIngress
+                Resource: '*'
+
+Outputs:
+  FrontendBucketName:
+    Description: Name of the S3 bucket for frontend
+    Value: !Ref FrontendBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-FrontendBucket'
+
+  CloudFrontDistributionId:
+    Description: CloudFront Distribution ID
+    Value: !Ref CloudFrontDistribution
+    Export:
+      Name: !Sub '${AWS::StackName}-CloudFrontDistribution'
+
+  CloudFrontDomainName:
+    Description: CloudFront Distribution Domain Name
+    Value: !GetAtt CloudFrontDistribution.DomainName
+    Export:
+      Name: !Sub '${AWS::StackName}-CloudFrontDomain'
+
+  WebsiteURL:
+    Description: Website URL
+    Value: !If
+      - HasCustomDomain
+      - !Sub 'https://${DomainName}'
+      - !Sub 'https://${CloudFrontDistribution.DomainName}'
+    Export:
+      Name: !Sub '${AWS::StackName}-WebsiteURL'
+
+  ApiEndpoint:
+    Description: API Endpoint URL
+    Value: !Sub
+      - 'http://${PublicIp}:${ApiPort}'
+      - PublicIp: !GetAtt AgentInstanceInfo.PublicIpAddress
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiEndpoint'
+
+  GitHubActionsRoleArn:
+    Description: IAM Role ARN for GitHub Actions
+    Value: !GetAtt GitHubActionsRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-GitHubActionsRole'
+
+  AgentInstanceId:
+    Description: Agent Server Instance ID
+    Value: !Ref AgentInstanceId
+    Export:
+      Name: !Sub '${AWS::StackName}-AgentInstanceId'
+
+  SecurityGroupId:
+    Description: Security Group ID for API access
+    Value: !GetAtt AgentInstanceInfo.SecurityGroupId
+    Export:
+      Name: !Sub '${AWS::StackName}-SecurityGroupId'
