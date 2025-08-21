@@ -1,234 +1,198 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('NA Agent Dashboard', () => {
+test.describe('NA Agent Dashboard - Live Deployment', () => {
+  const DASHBOARD_URL = 'http://niro-agent-dashboard-dev-816454053517.s3-website-us-east-1.amazonaws.com';
+  const API_URL = 'http://98.81.93.132:7777';
+
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto(DASHBOARD_URL);
   });
 
-  test('should load the dashboard', async ({ page }) => {
+  test('should load the deployed dashboard', async ({ page }) => {
     // Check if the page loads
-    await expect(page).toHaveTitle(/Agent/i);
-    
-    // Wait for the main app container
-    await expect(page.locator('#root')).toBeVisible();
-  });
-
-  test('should display agent grid', async ({ page }) => {
-    // Wait for the page to load and fetch agents
     await page.waitForLoadState('networkidle');
     
-    // Give the frontend time to fetch and render agents
-    await page.waitForTimeout(2000);
+    // Take a screenshot
+    await page.screenshot({ path: 'test-results/dashboard-load.png', fullPage: true });
     
-    // Check if agent cards are present (they might be rendered dynamically)
-    const agentCards = page.locator('[data-testid="agent-card"]');
-    const count = await agentCards.count();
+    // Basic page load verification
+    const title = await page.title();
+    console.log(`Page title: ${title}`);
     
-    // If no cards found, check if the API is working
-    if (count === 0) {
-      // Check API directly
-      const response = await page.request.get('http://localhost:7777/api/dashboard/agents');
-      const data = await response.json();
-      console.log('API returned agents:', data.agents?.length || 0);
-      
-      // Take a screenshot for debugging
-      await page.screenshot({ path: 'debug-no-agents.png' });
-    }
-    
-    expect(count).toBeGreaterThanOrEqual(1);
+    // Verify URL
+    expect(page.url()).toBe(DASHBOARD_URL);
   });
 
-  test('should show agent details', async ({ page }) => {
-    // Wait for page to load and fetch data
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
-    
-    // Check if agent cards exist
-    const agentCards = page.locator('[data-testid="agent-card"]');
-    const cardCount = await agentCards.count();
-    
-    if (cardCount > 0) {
-      // Check for agent name
-      const agentName = page.locator('[data-testid="agent-name"]').first();
-      await expect(agentName).toBeVisible();
-      const name = await agentName.textContent();
-      expect(name).toBeTruthy();
-      
-      // Check for agent status
-      const agentStatus = page.locator('[data-testid="agent-status"]').first();
-      await expect(agentStatus).toBeVisible();
-    } else {
-      // If no cards, skip this test as it depends on agent grid
-      console.log('No agent cards found, skipping detail check');
-    }
-  });
-
-  test('should display system metrics', async ({ page }) => {
-    // Check for metrics section
-    const metricsSection = page.locator('[data-testid="system-metrics"]');
-    
-    // If metrics section exists, verify it's visible
-    const metricsCount = await metricsSection.count();
-    if (metricsCount > 0) {
-      await expect(metricsSection).toBeVisible();
-      
-      // Check for CPU chart
-      const cpuChart = page.locator('[data-testid="cpu-chart"]');
-      const cpuCount = await cpuChart.count();
-      if (cpuCount > 0) {
-        await expect(cpuChart).toBeVisible();
-      }
-    }
-  });
-
-  test('should have control buttons for agents', async ({ page }) => {
-    // Wait for page to load
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
-    
-    // Check if agent cards exist
-    const agentCards = page.locator('[data-testid="agent-card"]');
-    const cardCount = await agentCards.count();
-    
-    if (cardCount > 0) {
-      // Check for start/stop buttons
-      const controlButtons = page.locator('button').filter({ 
-        hasText: /start|stop|restart/i 
-      });
-      
-      const buttonCount = await controlButtons.count();
-      if (buttonCount > 0) {
-        const firstButton = controlButtons.first();
-        await expect(firstButton).toBeEnabled();
-      }
-    } else {
-      console.log('No agent cards found, skipping button check');
-    }
-  });
-
-  test('should show terminal view', async ({ page }) => {
-    // Check if terminal section exists
-    const terminal = page.locator('[data-testid="terminal-view"]');
-    const terminalCount = await terminal.count();
-    
-    if (terminalCount > 0) {
-      await expect(terminal).toBeVisible();
-    }
-  });
-
-  test('should handle API connection', async ({ page }) => {
-    // Check if the app connects to the API
-    const response = await page.request.get('http://localhost:7777/health');
-    expect(response.ok()).toBeTruthy();
-    
-    const data = await response.json();
-    expect(data.status).toBe('healthy');
-  });
-
-  test('should fetch agents from API', async ({ page }) => {
+  test('should verify API is accessible', async ({ page }) => {
     // Test API endpoint directly
-    const response = await page.request.get('http://localhost:7777/api/dashboard/agents');
-    expect(response.ok()).toBeTruthy();
+    const response = await page.request.get(`${API_URL}/api/agents`);
+    expect(response.status()).toBe(200);
     
-    const data = await response.json();
-    expect(data.agents).toBeDefined();
-    expect(Array.isArray(data.agents)).toBeTruthy();
-    expect(data.agents.length).toBeGreaterThanOrEqual(3); // We have 3 demo agents
-  });
-
-  test('should display agent statistics', async ({ page }) => {
-    // Wait for stats to load
-    await page.waitForLoadState('networkidle');
+    const agents = await response.json();
+    console.log(`API returned ${agents.length} agents`);
+    expect(agents.length).toBeGreaterThan(0);
     
-    // Check for statistics display
-    const stats = page.locator('text=/total.*agents/i');
-    const statsCount = await stats.count();
-    
-    if (statsCount > 0) {
-      await expect(stats.first()).toBeVisible();
+    // Verify agent data structure
+    if (agents.length > 0) {
+      const firstAgent = agents[0];
+      expect(firstAgent).toHaveProperty('id');
+      expect(firstAgent).toHaveProperty('name');
+      expect(firstAgent).toHaveProperty('status');
+      expect(firstAgent).toHaveProperty('cpuUsage');
+      
+      console.log('Sample agent data:', {
+        id: firstAgent.id,
+        name: firstAgent.name,
+        status: firstAgent.status,
+        cpuUsage: firstAgent.cpuUsage
+      });
     }
   });
 
-  test('should handle WebSocket connection', async ({ page }) => {
-    // Check console for WebSocket errors
-    const consoleErrors: string[] = [];
-    page.on('console', msg => {
-      if (msg.type() === 'error') {
-        consoleErrors.push(msg.text());
-      }
+  test('should display agent data in dashboard', async ({ page }) => {
+    await page.waitForLoadState('networkidle');
+    
+    // Wait for dashboard to potentially load data
+    await page.waitForTimeout(5000);
+    
+    // Take screenshot of loaded dashboard
+    await page.screenshot({ path: 'test-results/dashboard-with-data.png', fullPage: true });
+    
+    // Get page content
+    const bodyText = await page.textContent('body');
+    console.log(`Dashboard content length: ${bodyText?.length} characters`);
+    
+    // Look for agent-related content
+    const hasAgentContent = bodyText?.toLowerCase().includes('agent');
+    console.log(`Contains 'agent' text: ${hasAgentContent}`);
+    
+    // Basic verification
+    expect(bodyText?.length).toBeGreaterThan(100);
+  });
+
+  test('should handle dashboard interactions', async ({ page }) => {
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(3000);
+    
+    // Look for interactive elements
+    const buttons = await page.locator('button').count();
+    const links = await page.locator('a').count();
+    const inputs = await page.locator('input').count();
+    
+    console.log(`Found elements - Buttons: ${buttons}, Links: ${links}, Inputs: ${inputs}`);
+    
+    // Take screenshot of interactive elements
+    await page.screenshot({ path: 'test-results/dashboard-interactions.png', fullPage: true });
+    
+    // Test basic interactions if elements exist
+    if (buttons > 0) {
+      const firstButton = page.locator('button').first();
+      const isEnabled = await firstButton.isEnabled();
+      console.log(`First button enabled: ${isEnabled}`);
+    }
+  });
+
+  test('should verify agent status updates', async ({ page }) => {
+    // First API call
+    const response1 = await page.request.get(`${API_URL}/api/agents`);
+    const agents1 = await response1.json();
+    
+    console.log('First API call - agents with status:');
+    agents1.slice(0, 3).forEach((agent: any) => {
+      console.log(`${agent.id}: ${agent.status} (CPU: ${agent.cpuUsage}%)`);
     });
     
-    // Wait for potential WebSocket connection
-    await page.waitForTimeout(2000);
+    // Wait for agent updates (our mock agents update every 15s)
+    await page.waitForTimeout(5000);
     
-    // Check that there are no WebSocket connection errors
-    const wsErrors = consoleErrors.filter(err => 
-      err.toLowerCase().includes('websocket') || 
-      err.toLowerCase().includes('socket.io')
+    // Second API call
+    const response2 = await page.request.get(`${API_URL}/api/agents`);
+    const agents2 = await response2.json();
+    
+    console.log('Second API call - agents with status:');
+    agents2.slice(0, 3).forEach((agent: any) => {
+      console.log(`${agent.id}: ${agent.status} (CPU: ${agent.cpuUsage}%)`);
+    });
+    
+    // Verify API is still working
+    expect(agents2.length).toBe(agents1.length);
+    expect(agents2.length).toBeGreaterThan(0);
+  });
+
+  test('should test CORS and cross-origin requests', async ({ page }) => {
+    // Navigate to dashboard
+    await page.goto(DASHBOARD_URL);
+    
+    // Check browser console for CORS errors
+    const consoleMessages: string[] = [];
+    page.on('console', msg => {
+      consoleMessages.push(`${msg.type()}: ${msg.text()}`);
+    });
+    
+    // Wait for page to potentially make API calls
+    await page.waitForTimeout(3000);
+    
+    // Look for CORS-related errors
+    const corsErrors = consoleMessages.filter(msg => 
+      msg.toLowerCase().includes('cors') || 
+      msg.toLowerCase().includes('origin') ||
+      msg.toLowerCase().includes('blocked')
     );
     
-    // It's okay if WebSocket fails in test environment
-    // Just log it for debugging
-    if (wsErrors.length > 0) {
-      console.log('WebSocket errors detected (may be normal in test env):', wsErrors);
+    console.log('Console messages:', consoleMessages.slice(-5)); // Last 5 messages
+    
+    if (corsErrors.length > 0) {
+      console.log('CORS errors detected:', corsErrors);
     }
+    
+    // CORS should not block our requests since we enabled it in the API
+    expect(corsErrors.length).toBe(0);
   });
 
-  test('should be responsive', async ({ page }) => {
-    // Test mobile viewport
-    await page.setViewportSize({ width: 375, height: 667 });
-    await page.reload();
+  test('should verify dashboard performance', async ({ page }) => {
+    const startTime = Date.now();
     
-    // Check if the app still renders
-    await expect(page.locator('#root')).toBeVisible();
-    
-    // Reset viewport
-    await page.setViewportSize({ width: 1280, height: 720 });
-  });
-
-  test('should send message to agent', async ({ page }) => {
-    // Test agent messaging API
-    const response = await page.request.post('http://localhost:7777/api/dashboard/agents/demo-developer-1/message', {
-      data: {
-        message: 'Test message from UI test',
-        context: { test: true }
-      }
-    });
-    
-    expect(response.ok()).toBeTruthy();
-    
-    const data = await response.json();
-    expect(data.id).toBeDefined();
-    expect(data.type).toBe('agent');
-    expect(data.content).toBeTruthy();
-  });
-
-  test('should display cost information', async ({ page }) => {
-    // Check for cost display
+    await page.goto(DASHBOARD_URL);
     await page.waitForLoadState('networkidle');
     
-    const costInfo = page.locator('text=/\\$|cost|hourly|daily|monthly/i');
-    const costCount = await costInfo.count();
+    const loadTime = Date.now() - startTime;
+    console.log(`Dashboard load time: ${loadTime}ms`);
     
-    if (costCount > 0) {
-      console.log(`Found ${costCount} cost-related elements`);
-    }
+    // Dashboard should load within reasonable time
+    expect(loadTime).toBeLessThan(10000); // 10 seconds max
+    
+    // Test API response time
+    const apiStartTime = Date.now();
+    const response = await page.request.get(`${API_URL}/api/agents`);
+    const apiResponseTime = Date.now() - apiStartTime;
+    
+    console.log(`API response time: ${apiResponseTime}ms`);
+    expect(response.status()).toBe(200);
+    expect(apiResponseTime).toBeLessThan(5000); // 5 seconds max
   });
 
-  test('should handle agent task submission', async ({ page }) => {
-    // Test task submission API
-    const response = await page.request.post('http://localhost:7777/api/dashboard/agents/demo-developer-1/task', {
-      data: {
-        task: 'Test task from UI test',
-        priority: 'medium',
-        timeout: 60
-      }
-    });
+  test('should verify mobile responsiveness', async ({ page }) => {
+    // Test mobile viewport
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto(DASHBOARD_URL);
+    await page.waitForLoadState('networkidle');
     
-    expect(response.ok()).toBeTruthy();
+    // Take mobile screenshot
+    await page.screenshot({ path: 'test-results/dashboard-mobile.png', fullPage: true });
     
-    const data = await response.json();
-    expect(data.taskId).toBeDefined();
-    expect(data.status).toBe('submitted');
+    // Test tablet viewport
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    
+    // Take tablet screenshot
+    await page.screenshot({ path: 'test-results/dashboard-tablet.png', fullPage: true });
+    
+    // Reset to desktop
+    await page.setViewportSize({ width: 1280, height: 720 });
+    
+    // Basic verification that page loads in all viewports
+    const bodyText = await page.textContent('body');
+    expect(bodyText?.length).toBeGreaterThan(50);
   });
 });

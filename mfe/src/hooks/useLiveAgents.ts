@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { LiveAgentMetrics } from '../types/policy';
 
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:7777';
+
 interface UseLiveAgentsReturn {
   agents: LiveAgentMetrics[];
   loading: boolean;
@@ -199,7 +201,7 @@ export const useLiveAgents = (): UseLiveAgentsReturn => {
       
       // Try to fetch from API first, fallback to live data
       try {
-        const response = await fetch('http://localhost:7777/api/dashboard/agents');
+        const response = await fetch(`${API_BASE_URL}/api/agents`);
         if (response.ok) {
           const data = await response.json();
           // Enhance API data with policy compliance metrics

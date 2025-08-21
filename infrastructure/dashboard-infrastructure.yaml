@@ -137,13 +137,13 @@ Resources:
         HttpVersion: http2
         PriceClass: PriceClass_100
         Comment: !Sub 'Niro Agent Dashboard ${Environment}'
-        Tags:
-          - Key: Environment
-            Value: !Ref Environment
-          - Key: Project
-            Value: NiroAgentDashboard
-          - Key: Component
-            Value: CDN
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: NiroAgentDashboard
+        - Key: Component
+          Value: CDN
 
   # Lambda function to get instance information
   GetInstanceInfoFunction:
@@ -186,9 +186,16 @@ Resources:
                       if 'InvalidPermission.Duplicate' not in str(e):
                           raise
                   
+                  # Ensure all required attributes are present
+                  public_ip = instance.get('PublicIpAddress', '')
+                  public_dns = instance.get('PublicDnsName', '')
+                  if not public_dns and public_ip:
+                      public_dns = public_ip
+                  
                   data = {
-                      'PublicIpAddress': instance.get('PublicIpAddress', ''),
+                      'PublicIpAddress': public_ip,
                       'PrivateIpAddress': instance.get('PrivateIpAddress', ''),
+                      'PublicDnsName': public_dns,
                       'SecurityGroupId': security_group_id,
                       'VpcId': instance.get('VpcId', '')
                   }
@@ -197,60 +204,6 @@ Resources:
               except Exception as e:
                   print(f"Error: {str(e)}")
                   cfnresponse.send(event, context, cfnresponse.FAILED, {})
-
-  # IAM Role for GitHub Actions Deployment
-  GitHubActionsRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: !Sub 'NiroAgentDashboard-GitHubActions-${Environment}'
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Federated: !Sub 'arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com'
-            Action: sts:AssumeRoleWithWebIdentity
-            Condition:
-              StringEquals:
-                'token.actions.githubusercontent.com:aud': sts.amazonaws.com
-              StringLike:
-                'token.actions.githubusercontent.com:sub': 'repo:NiroAgent/na-agent-dashboard:*'
-      Policies:
-        - PolicyName: DeploymentPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - s3:GetObject
-                  - s3:PutObject
-                  - s3:DeleteObject
-                  - s3:ListBucket
-                  - s3:PutBucketWebsite
-                  - s3:GetBucketWebsite
-                Resource:
-                  - !Sub '${FrontendBucket}/*'
-                  - !GetAtt FrontendBucket.Arn
-              - Effect: Allow
-                Action:
-                  - cloudfront:CreateInvalidation
-                  - cloudfront:GetDistribution
-                  - cloudfront:ListDistributions
-                Resource: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}'
-              - Effect: Allow
-                Action:
-                  - ec2:DescribeInstances
-                  - ec2:DescribeSecurityGroups
-                  - ssm:SendCommand
-                  - ssm:GetCommandInvocation
-                  - ssm:DescribeInstanceInformation
-                Resource: '*'
-              - Effect: Allow
-                Action:
-                  - logs:CreateLogGroup
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*'
 
   # SSM Parameter for API Endpoint
   ApiEndpointParameter:
@@ -273,41 +226,6 @@ Resources:
       ServiceToken: !GetAtt GetInstanceInfoFunction.Arn
       InstanceId: !Ref AgentInstanceId
       ApiPort: !Ref ApiPort
-
-  # Lambda function to get instance information
-  GetInstanceInfoFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: !Sub 'niro-dashboard-get-instance-info-${Environment}'
-      Runtime: python3.9
-      Handler: index.handler
-      Role: !GetAtt GetInstanceInfoRole.Arn
-      Timeout: 60
-      Code:
-        ZipFile: |
-          import boto3
-          import json
-          import cfnresponse
-          
-          def handler(event, context):
-              try:
-                  ec2 = boto3.client('ec2')
-                  instance_id = event['ResourceProperties']['InstanceId']
-                  
-                  response = ec2.describe_instances(InstanceIds=[instance_id])
-                  instance = response['Reservations'][0]['Instances'][0]
-                  
-                  data = {
-                      'PublicIpAddress': instance.get('PublicIpAddress', ''),
-                      'PrivateIpAddress': instance.get('PrivateIpAddress', ''),
-                      'SecurityGroups': [sg['GroupId'] for sg in instance['SecurityGroups']],
-                      'VpcId': instance.get('VpcId', '')
-                  }
-                  
-                  cfnresponse.send(event, context, cfnresponse.SUCCESS, data)
-              except Exception as e:
-                  print(f"Error: {str(e)}")
-                  cfnresponse.send(event, context, cfnresponse.FAILED, {})
 
   # IAM Role for Lambda function
   GetInstanceInfoRole:
@@ -369,12 +287,6 @@ Outputs:
       - PublicIp: !GetAtt AgentInstanceInfo.PublicIpAddress
     Export:
       Name: !Sub '${AWS::StackName}-ApiEndpoint'
-
-  GitHubActionsRoleArn:
-    Description: IAM Role ARN for GitHub Actions
-    Value: !GetAtt GitHubActionsRole.Arn
-    Export:
-      Name: !Sub '${AWS::StackName}-GitHubActionsRole'
 
   AgentInstanceId:
     Description: Agent Server Instance ID

@@ -42,6 +42,8 @@ import { useSocket } from './hooks/useSocket';
 import { useExternalData } from './hooks/useExternalData';
 import { Agent, SystemInfo } from './types';
 
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:7777';
+
 const darkTheme = createTheme({
   palette: {
     mode: 'dark',
@@ -75,7 +77,7 @@ function App() {
   // Fetch agents data via HTTP
   const fetchAgents = async () => {
     try {
-      const response = await fetch('http://localhost:7777/api/dashboard/agents');
+      const response = await fetch(`${API_BASE_URL}/api/agents`);
       if (response.ok) {
         const data = await response.json();
         setAgents(data.agents || []);
@@ -113,7 +115,7 @@ function App() {
 
   const handleStartAgent = async (agentId: string) => {
     try {
-      const response = await fetch(`http://localhost:7777/api/dashboard/agents/${agentId}/control`, {
+      const response = await fetch(`${API_BASE_URL}/api/dashboard/agents/${agentId}/control`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -136,7 +138,7 @@ function App() {
 
   const handleStopAgent = async (agentId: string) => {
     try {
-      const response = await fetch(`http://localhost:7777/api/dashboard/agents/${agentId}/control`, {
+      const response = await fetch(`${API_BASE_URL}/api/dashboard/agents/${agentId}/control`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -159,7 +161,7 @@ function App() {
 
   const handleRestartAgent = async (agentId: string) => {
     try {
-      const response = await fetch(`http://localhost:7777/api/dashboard/agents/${agentId}/control`, {
+      const response = await fetch(`${API_BASE_URL}/api/dashboard/agents/${agentId}/control`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -187,7 +189,7 @@ function App() {
 
   const handleDeployAllAgents = async () => {
     try {
-      const response = await fetch('http://localhost:7777/api/dashboard/deploy-all', {
+      const response = await fetch(`${API_BASE_URL}/api/dashboard/deploy-all`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
