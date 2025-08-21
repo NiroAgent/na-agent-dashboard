@@ -7,7 +7,7 @@ test.describe('Live Service Integration Tests', () => {
   test.beforeAll(async ({ request }) => {
     // Verify API is actually running
     try {
-      const apiHealth = await request.get('http://localhost:4001/health');
+      const apiHealth = await request.get('http://localhost:7777/health');
       apiHealthy = apiHealth.ok();
       const apiData = await apiHealth.json();
       console.log('API Health Check:', apiData);
@@ -37,7 +37,7 @@ test.describe('Live Service Integration Tests', () => {
     ];
 
     for (const endpoint of endpoints) {
-      const response = await request.get(`http://localhost:4001${endpoint}`);
+      const response = await request.get(`http://localhost:7777${endpoint}`);
       expect(response.ok()).toBeTruthy();
       
       const data = await response.json();
@@ -51,7 +51,7 @@ test.describe('Live Service Integration Tests', () => {
     // Monitor network requests
     const apiCalls: string[] = [];
     page.on('request', request => {
-      if (request.url().includes('localhost:4001')) {
+      if (request.url().includes('localhost:7777')) {
         apiCalls.push(request.url());
       }
     });
@@ -134,7 +134,7 @@ test.describe('Live Service Integration Tests', () => {
   test('Real-time agent message communication', async ({ page, request }) => {
     // Send a real message to an agent
     const message = `Test message at ${new Date().toISOString()}`;
-    const response = await request.post('http://localhost:4001/api/dashboard/agents/demo-developer-1/message', {
+    const response = await request.post('http://localhost:7777/api/dashboard/agents/demo-developer-1/message', {
       data: {
         message: message,
         context: { 
@@ -158,7 +158,7 @@ test.describe('Live Service Integration Tests', () => {
     expect(responseData.timestamp).toBeDefined();
 
     // Verify conversation history
-    const historyResponse = await request.get('http://localhost:4001/api/dashboard/agents/demo-developer-1/conversation');
+    const historyResponse = await request.get('http://localhost:7777/api/dashboard/agents/demo-developer-1/conversation');
     expect(historyResponse.ok()).toBeTruthy();
     
     const history = await historyResponse.json();
@@ -182,7 +182,7 @@ test.describe('Live Service Integration Tests', () => {
       timeout: 120
     };
 
-    const response = await request.post('http://localhost:4001/api/dashboard/agents/demo-architect-1/task', {
+    const response = await request.post('http://localhost:7777/api/dashboard/agents/demo-architect-1/task', {
       data: taskData,
       headers: {
         'Content-Type': 'application/json'
@@ -202,13 +202,13 @@ test.describe('Live Service Integration Tests', () => {
 
   test('Live statistics update correctly', async ({ request }) => {
     // Get initial stats
-    const stats1 = await request.get('http://localhost:4001/api/dashboard/stats');
+    const stats1 = await request.get('http://localhost:7777/api/dashboard/stats');
     const data1 = await stats1.json();
     
     console.log('Initial statistics:', data1);
     
     // Submit a task to change stats
-    await request.post('http://localhost:4001/api/dashboard/agents/demo-qa-1/task', {
+    await request.post('http://localhost:7777/api/dashboard/agents/demo-qa-1/task', {
       data: {
         task: 'Test task for stats update',
         priority: 'low'
@@ -219,7 +219,7 @@ test.describe('Live Service Integration Tests', () => {
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     // Get updated stats
-    const stats2 = await request.get('http://localhost:4001/api/dashboard/stats');
+    const stats2 = await request.get('http://localhost:7777/api/dashboard/stats');
     const data2 = await stats2.json();
     
     console.log('Updated statistics:', data2);
@@ -238,7 +238,7 @@ test.describe('Live Service Integration Tests', () => {
 
     // Send messages to all agents concurrently
     const promises = agents.map(agentId => 
-      request.post(`http://localhost:4001/api/dashboard/agents/${agentId}/message`, {
+      request.post(`http://localhost:7777/api/dashboard/agents/${agentId}/message`, {
         data: {
           message: `Concurrent test for ${agentId} at ${Date.now()}`,
           context: { concurrent: true }
@@ -266,7 +266,7 @@ test.describe('Live Service Integration Tests', () => {
   });
 
   test('Error handling for invalid agent IDs', async ({ request }) => {
-    const response = await request.post('http://localhost:4001/api/dashboard/agents/invalid-agent-id/message', {
+    const response = await request.post('http://localhost:7777/api/dashboard/agents/invalid-agent-id/message', {
       data: {
         message: 'Test message to invalid agent'
       }
@@ -339,7 +339,7 @@ test.describe('Live Service Integration Tests', () => {
 
   test('Verify all services are truly independent', async ({ request }) => {
     // Test that API works independently
-    const directAPICall = await request.get('http://localhost:4001/api/dashboard/agents');
+    const directAPICall = await request.get('http://localhost:7777/api/dashboard/agents');
     expect(directAPICall.ok()).toBeTruthy();
     
     const agents = await directAPICall.json();
@@ -351,7 +351,7 @@ test.describe('Live Service Integration Tests', () => {
     
     await new Promise(resolve => setTimeout(resolve, 1100));
     
-    const secondCall = await request.get('http://localhost:4001/api/dashboard/agents');
+    const secondCall = await request.get('http://localhost:7777/api/dashboard/agents');
     const agents2 = await secondCall.json();
     const timestamp2 = agents2.timestamp;
     

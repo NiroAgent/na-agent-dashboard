@@ -23,7 +23,7 @@ export default defineConfig({
   webServer: [
     {
       command: 'cd api && npm run dev',
-      port: 4001,
+      port: 7777,
       reuseExistingServer: true,
     },
     {

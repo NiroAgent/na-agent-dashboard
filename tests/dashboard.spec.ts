@@ -27,7 +27,7 @@ test.describe('NA Agent Dashboard', () => {
     // If no cards found, check if the API is working
     if (count === 0) {
       // Check API directly
-      const response = await page.request.get('http://localhost:4001/api/dashboard/agents');
+      const response = await page.request.get('http://localhost:7777/api/dashboard/agents');
       const data = await response.json();
       console.log('API returned agents:', data.agents?.length || 0);
       
@@ -118,7 +118,7 @@ test.describe('NA Agent Dashboard', () => {
 
   test('should handle API connection', async ({ page }) => {
     // Check if the app connects to the API
-    const response = await page.request.get('http://localhost:4001/health');
+    const response = await page.request.get('http://localhost:7777/health');
     expect(response.ok()).toBeTruthy();
     
     const data = await response.json();
@@ -127,7 +127,7 @@ test.describe('NA Agent Dashboard', () => {
 
   test('should fetch agents from API', async ({ page }) => {
     // Test API endpoint directly
-    const response = await page.request.get('http://localhost:4001/api/dashboard/agents');
+    const response = await page.request.get('http://localhost:7777/api/dashboard/agents');
     expect(response.ok()).toBeTruthy();
     
     const data = await response.json();
@@ -188,7 +188,7 @@ test.describe('NA Agent Dashboard', () => {
 
   test('should send message to agent', async ({ page }) => {
     // Test agent messaging API
-    const response = await page.request.post('http://localhost:4001/api/dashboard/agents/demo-developer-1/message', {
+    const response = await page.request.post('http://localhost:7777/api/dashboard/agents/demo-developer-1/message', {
       data: {
         message: 'Test message from UI test',
         context: { test: true }
@@ -217,7 +217,7 @@ test.describe('NA Agent Dashboard', () => {
 
   test('should handle agent task submission', async ({ page }) => {
     // Test task submission API
-    const response = await page.request.post('http://localhost:4001/api/dashboard/agents/demo-developer-1/task', {
+    const response = await page.request.post('http://localhost:7777/api/dashboard/agents/demo-developer-1/task', {
       data: {
         task: 'Test task from UI test',
         priority: 'medium',

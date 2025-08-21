@@ -5,7 +5,7 @@ test.describe('Real Agent Integration Tests', () => {
 
   test.beforeAll(async ({ request }) => {
     // Get real agents from the system
-    const response = await request.get('http://localhost:4001/api/dashboard/agents');
+    const response = await request.get('http://localhost:7777/api/dashboard/agents');
     expect(response.ok()).toBeTruthy();
     
     const data = await response.json();
@@ -87,7 +87,7 @@ test.describe('Real Agent Integration Tests', () => {
     await new Promise(resolve => setTimeout(resolve, 5000));
 
     // Get updated agent data
-    const response = await request.get('http://localhost:4001/api/dashboard/agents');
+    const response = await request.get('http://localhost:7777/api/dashboard/agents');
     const updatedData = await response.json();
     const updatedAgents = updatedData.agents || [];
 
@@ -110,7 +110,7 @@ test.describe('Real Agent Integration Tests', () => {
   });
 
   test('should verify data source connectivity', async ({ request }) => {
-    const response = await request.get('http://localhost:4001/api/dashboard/data-sources');
+    const response = await request.get('http://localhost:7777/api/dashboard/data-sources');
     expect(response.ok()).toBeTruthy();
     
     const dataSources = await response.json();
@@ -128,7 +128,7 @@ test.describe('Real Agent Integration Tests', () => {
       console.log(`🎮 Testing control operations for ${agent.id}...`);
 
       // Try to get agent details
-      const detailResponse = await request.get(`http://localhost:4001/api/dashboard/agents/${agent.id}`);
+      const detailResponse = await request.get(`http://localhost:7777/api/dashboard/agents/${agent.id}`);
       console.log(`   Agent details: ${detailResponse.status()}`);
 
       // Try control operations (these might not be implemented)
@@ -136,7 +136,7 @@ test.describe('Real Agent Integration Tests', () => {
       
       for (const operation of controlOps) {
         try {
-          const controlResponse = await request.post(`http://localhost:4001/api/dashboard/agents/${agent.id}/control`, {
+          const controlResponse = await request.post(`http://localhost:7777/api/dashboard/agents/${agent.id}/control`, {
             data: { action: operation }
           });
           
@@ -218,7 +218,7 @@ test.describe('Real Agent Integration Tests', () => {
       const reqStart = Date.now();
       
       try {
-        const response = await request.get('http://localhost:4001/api/dashboard/agents');
+        const response = await request.get('http://localhost:7777/api/dashboard/agents');
         const reqTime = Date.now() - reqStart;
         
         if (response.ok()) {
@@ -269,7 +269,7 @@ test.describe('Real Agent Integration Tests', () => {
     console.log('🌐 Testing external data integration...');
 
     // Check live data endpoint
-    const liveDataResponse = await request.get('http://localhost:4001/api/dashboard/live-data');
+    const liveDataResponse = await request.get('http://localhost:7777/api/dashboard/live-data');
     expect(liveDataResponse.ok()).toBeTruthy();
     
     const liveData = await liveDataResponse.json();
@@ -290,7 +290,7 @@ test.describe('Real Agent Integration Tests', () => {
     // Wait and check again
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    const liveDataResponse2 = await request.get('http://localhost:4001/api/dashboard/live-data');
+    const liveDataResponse2 = await request.get('http://localhost:7777/api/dashboard/live-data');
     const liveData2 = await liveDataResponse2.json();
     const timestamp2 = liveData2.timestamp;
 

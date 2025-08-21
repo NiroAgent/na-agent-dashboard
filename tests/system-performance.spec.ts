@@ -5,7 +5,7 @@ test.describe('Multi-Agent System Performance Tests', () => {
 
   test.beforeAll(async ({ request }) => {
     // Get current agents from the live system
-    const response = await request.get('http://localhost:4001/api/dashboard/agents');
+    const response = await request.get('http://localhost:7777/api/dashboard/agents');
     expect(response.ok()).toBeTruthy();
     
     const data = await response.json();
@@ -31,7 +31,7 @@ test.describe('Multi-Agent System Performance Tests', () => {
       const reqStart = Date.now();
       
       try {
-        const response = await request.get('http://localhost:4001/api/dashboard/agents');
+        const response = await request.get('http://localhost:7777/api/dashboard/agents');
         const reqTime = Date.now() - reqStart;
         
         if (response.ok()) {
@@ -98,7 +98,7 @@ test.describe('Multi-Agent System Performance Tests', () => {
       await new Promise(resolve => setTimeout(resolve, index * 500)); // Stagger requests
       
       try {
-        const response = await request.get('http://localhost:4001/api/dashboard/stats');
+        const response = await request.get('http://localhost:7777/api/dashboard/stats');
         
         if (response.ok()) {
           const stats = await response.json();
@@ -138,7 +138,7 @@ test.describe('Multi-Agent System Performance Tests', () => {
       
       for (let i = 0; i < 3; i++) {
         try {
-          const response = await request.get(`http://localhost:4001/api/dashboard/${source}`);
+          const response = await request.get(`http://localhost:7777/api/dashboard/${source}`);
           
           if (response.ok()) {
             const data = await response.json();
@@ -217,7 +217,7 @@ test.describe('Multi-Agent System Performance Tests', () => {
         const requestType = ['agents', 'stats', 'data-sources'][i % 3];
         
         try {
-          const response = await request.get(`http://localhost:4001/api/dashboard/${requestType}`);
+          const response = await request.get(`http://localhost:7777/api/dashboard/${requestType}`);
           userRequests.push({
             type: requestType,
             success: response.ok(),
@@ -283,9 +283,9 @@ test.describe('Multi-Agent System Performance Tests', () => {
     
     // Get data from multiple endpoints simultaneously
     const endpoints = [
-      'http://localhost:4001/api/dashboard/agents',
-      'http://localhost:4001/api/dashboard/stats',
-      'http://localhost:4001/api/dashboard/data-sources'
+      'http://localhost:7777/api/dashboard/agents',
+      'http://localhost:7777/api/dashboard/stats',
+      'http://localhost:7777/api/dashboard/data-sources'
     ];
 
     const consistencyTests: any[] = [];
@@ -379,7 +379,7 @@ test.describe('Multi-Agent System Performance Tests', () => {
       try {
         if (edgeCase.name === 'Rapid requests') {
           const rapidRequests = Array(edgeCase.count).fill(0).map(() =>
-            request.get(`http://localhost:4001${edgeCase.endpoint}`)
+            request.get(`http://localhost:7777${edgeCase.endpoint}`)
           );
           
           const results = await Promise.all(rapidRequests);
@@ -389,7 +389,7 @@ test.describe('Multi-Agent System Performance Tests', () => {
           expect(successCount).toBeGreaterThan((edgeCase.count || 10) * 0.8); // 80% success rate
           
         } else {
-          const response = await request.get(`http://localhost:4001${edgeCase.endpoint}`, {
+          const response = await request.get(`http://localhost:7777${edgeCase.endpoint}`, {
             headers: edgeCase.headers || {}
           });
           
@@ -422,7 +422,7 @@ test.describe('Multi-Agent System Performance Tests', () => {
 
     // Collect agent data
     try {
-      const agentsResponse = await request.get('http://localhost:4001/api/dashboard/agents');
+      const agentsResponse = await request.get('http://localhost:7777/api/dashboard/agents');
       if (agentsResponse.ok()) {
         const agentsData = await agentsResponse.json();
         report.agents = agentsData.agents || [];
@@ -433,7 +433,7 @@ test.describe('Multi-Agent System Performance Tests', () => {
 
     // Collect stats
     try {
-      const statsResponse = await request.get('http://localhost:4001/api/dashboard/stats');
+      const statsResponse = await request.get('http://localhost:7777/api/dashboard/stats');
       if (statsResponse.ok()) {
         const stats = await statsResponse.json();
         report.performance = stats;
@@ -444,7 +444,7 @@ test.describe('Multi-Agent System Performance Tests', () => {
 
     // Collect data sources
     try {
-      const sourcesResponse = await request.get('http://localhost:4001/api/dashboard/data-sources');
+      const sourcesResponse = await request.get('http://localhost:7777/api/dashboard/data-sources');
       if (sourcesResponse.ok()) {
         const sources = await sourcesResponse.json();
         report.dataSources = sources.sources || [];
@@ -455,7 +455,7 @@ test.describe('Multi-Agent System Performance Tests', () => {
 
     // Performance metrics
     const performanceStart = Date.now();
-    const healthResponse = await request.get('http://localhost:4001/health');
+    const healthResponse = await request.get('http://localhost:7777/health');
     const performanceTime = Date.now() - performanceStart;
 
     report.systemHealth = {
