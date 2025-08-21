@@ -75,7 +75,7 @@ function App() {
   // Fetch agents data via HTTP
   const fetchAgents = async () => {
     try {
-      const response = await fetch('http://localhost:4001/api/dashboard/agents');
+      const response = await fetch('http://localhost:7777/api/dashboard/agents');
       if (response.ok) {
         const data = await response.json();
         setAgents(data.agents || []);
@@ -113,7 +113,7 @@ function App() {
 
   const handleStartAgent = async (agentId: string) => {
     try {
-      const response = await fetch(`http://localhost:4001/api/dashboard/agents/${agentId}/control`, {
+      const response = await fetch(`http://localhost:7777/api/dashboard/agents/${agentId}/control`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -136,7 +136,7 @@ function App() {
 
   const handleStopAgent = async (agentId: string) => {
     try {
-      const response = await fetch(`http://localhost:4001/api/dashboard/agents/${agentId}/control`, {
+      const response = await fetch(`http://localhost:7777/api/dashboard/agents/${agentId}/control`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -159,7 +159,7 @@ function App() {
 
   const handleRestartAgent = async (agentId: string) => {
     try {
-      const response = await fetch(`http://localhost:4001/api/dashboard/agents/${agentId}/control`, {
+      const response = await fetch(`http://localhost:7777/api/dashboard/agents/${agentId}/control`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -187,7 +187,7 @@ function App() {
 
   const handleDeployAllAgents = async () => {
     try {
-      const response = await fetch('http://localhost:4001/api/dashboard/deploy-all', {
+      const response = await fetch('http://localhost:7777/api/dashboard/deploy-all', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

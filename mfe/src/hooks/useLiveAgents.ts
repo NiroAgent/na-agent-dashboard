@@ -199,7 +199,7 @@ export const useLiveAgents = (): UseLiveAgentsReturn => {
       
       // Try to fetch from API first, fallback to live data
       try {
-        const response = await fetch('http://localhost:4001/api/dashboard/agents');
+        const response = await fetch('http://localhost:7777/api/dashboard/agents');
         if (response.ok) {
           const data = await response.json();
           // Enhance API data with policy compliance metrics

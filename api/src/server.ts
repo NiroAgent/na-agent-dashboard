@@ -48,7 +48,7 @@ const logger = winston.createLogger({
 
 // Initialize Express app
 const app = express();
-const PORT = process.env.PORT || 4002;
+const PORT = process.env.PORT || 7777;
 
 // Middleware
 app.use(helmet());
@@ -347,20 +347,13 @@ app.post('/api/dashboard/refresh', async (req, res) => {
   }
 });
 
-// Agent Service API endpoints
+// Agent Service API endpoints - for specific agent interactions only
 app.get('/api/dashboard/stats', (req, res) => {
   const stats = agentService.getStatistics();
   res.json(stats);
 });
 
-app.get('/api/dashboard/agents', (req, res) => {
-  const agents = agentService.getAgents();
-  res.json({
-    agents,
-    total: agents.length,
-    timestamp: new Date().toISOString()
-  });
-});
+// REMOVED DUPLICATE: app.get('/api/dashboard/agents') - Use LiveDataIntegration endpoint instead
 
 app.get('/api/dashboard/agents/:agentId', (req, res) => {
   const agent = agentService.getAgent(req.params.agentId);

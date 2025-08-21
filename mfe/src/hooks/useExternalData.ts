@@ -25,7 +25,7 @@ interface UseExternalDataReturn {
   dataSourceStatus: ExternalDataSource[];
 }
 
-const API_BASE_URL = 'http://localhost:4001';
+const API_BASE_URL = 'http://localhost:7777';
 
 export const useExternalData = (): UseExternalDataReturn => {
   const [data, setData] = useState<LiveSystemData | null>(null);
