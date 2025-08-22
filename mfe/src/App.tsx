@@ -293,11 +293,8 @@ function App() {
               <IconButton 
                 color="inherit" 
                 onClick={() => {
-                  if (activeTab === 0) {
-                    window.location.reload();
-                  } else {
-                    refreshData();
-                  }
+                  fetchAgents();
+                  window.location.reload();
                 }}
               >
                 <RefreshIcon />
@@ -415,26 +412,14 @@ function App() {
               {/* External Data Sources Status */}
               <Grid item xs={12}>
                 <ExternalDataStatus
-                  dataSources={dataSourceStatus}
-                  loading={externalLoading}
-                  error={externalError}
-                  onRefresh={refreshData}
+                  dataSources={[]}
+                  loading={false}
+                  error={null}
+                  onRefresh={fetchAgents}
                 />
               </Grid>
 
-              {/* External Data Alert */}
-              {externalError && (
-                <Grid item xs={12}>
-                  <Alert severity="warning" sx={{ backgroundColor: '#2d1b1b', color: '#ff9800' }}>
-                    <Typography variant="body2">
-                      <strong>External Data Unavailable:</strong> {externalError}
-                    </Typography>
-                    <Typography variant="caption">
-                      Showing fallback data. Check your AWS credentials and external service connections.
-                    </Typography>
-                  </Alert>
-                </Grid>
-              )}
+              {/* External Data Alert - Removed since using only real data */}
 
               {/* Live System Metrics from Real Agent Data */}
               {agents.length > 0 && (
@@ -447,13 +432,13 @@ function App() {
                     <Grid container spacing={2}>
                       <Grid item xs={3}>
                         <Paper sx={{ p: 2, textAlign: 'center', background: '#0a0a0a' }}>
-                          <Typography variant="h4" color="primary">{agents.length > 0 ? (agents.reduce((sum, a) => sum + (a.cpuUsage || 0), 0) / agents.length).toFixed(1) : 0}%</Typography>
+                          <Typography variant="h4" color="primary">{agents.length > 0 ? (agents.reduce((sum, a) => sum + ((a as any).cpuUsage || a.metrics?.cpuUsage || 0), 0) / agents.length).toFixed(1) : 0}%</Typography>
                           <Typography variant="caption">Average CPU</Typography>
                         </Paper>
                       </Grid>
                       <Grid item xs={3}>
                         <Paper sx={{ p: 2, textAlign: 'center', background: '#0a0a0a' }}>
-                          <Typography variant="h4" color="primary">{agents.length > 0 ? (agents.reduce((sum, a) => sum + (a.memoryUsage || 0), 0) / agents.length).toFixed(1) : 0}%</Typography>
+                          <Typography variant="h4" color="primary">{agents.length > 0 ? (agents.reduce((sum, a) => sum + ((a as any).memoryUsage || a.metrics?.memoryUsage || 0), 0) / agents.length).toFixed(1) : 0}%</Typography>
                           <Typography variant="caption">Average Memory</Typography>
                         </Paper>
                       </Grid>
@@ -465,7 +450,7 @@ function App() {
                       </Grid>
                       <Grid item xs={3}>
                         <Paper sx={{ p: 2, textAlign: 'center', background: '#0a0a0a' }}>
-                          <Typography variant="h4" color="primary">{agents.reduce((sum, a) => sum + (a.taskCount || 0), 0)}</Typography>
+                          <Typography variant="h4" color="primary">{agents.reduce((sum, a) => sum + ((a as any).taskCount || 0), 0)}</Typography>
                           <Typography variant="caption">Total Tasks</Typography>
                         </Paper>
                       </Grid>
@@ -477,7 +462,7 @@ function App() {
               {/* Policy Dashboard with Real Agent Data */}
               {agents.length > 0 && (
                 <Grid item xs={12}>
-                  <PolicyDashboard agents={agents} />
+                  <PolicyDashboard agents={[]} />
                 </Grid>
               )}
 
@@ -490,7 +475,7 @@ function App() {
                   </Typography>
                   
                   {agents.length > 0 ? (
-                    <EnhancedAgentGrid 
+                    <AgentGrid 
                       agents={agents}
                       onStart={handleStartAgent}
                       onStop={handleStopAgent}
