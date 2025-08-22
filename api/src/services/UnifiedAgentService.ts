@@ -204,6 +204,15 @@ export class UnifiedAgentService extends EventEmitter {
   async discoverAgents(): Promise<void> {
     const agents: Agent[] = [];
 
+    // Discover TypeScript agents (NEW - prioritized)
+    try {
+      const typescriptAgents = await this.discoverTypescriptAgents();
+      agents.push(...typescriptAgents);
+      logger.info(`Discovered ${typescriptAgents.length} TypeScript agents`);
+    } catch (error) {
+      logger.warn('Failed to discover TypeScript agents:', error instanceof Error ? error.message : error);
+    }
+
     // For live demo, use a mix of real demo agents with realistic data
     agents.push(...this.getDemoAgents());
 
@@ -237,7 +246,7 @@ export class UnifiedAgentService extends EventEmitter {
       }
     }
 
-    // Only use demo agents if explicitly no AWS credentials
+    // Only use demo agents if explicitly no AWS credentials and no TypeScript agents
     if (agents.length === 0) {
       const hasAWSCreds = process.env.AWS_ACCESS_KEY_ID || process.env.AWS_PROFILE;
       if (!hasAWSCreds) {
@@ -261,6 +270,137 @@ export class UnifiedAgentService extends EventEmitter {
     // Emit update event
     this.emit('agents-updated', Array.from(this.agents.values()));
     this.broadcastToWebSockets('agents-updated', Array.from(this.agents.values()));
+  }
+
+  /**
+   * Discover TypeScript agents via HTTP API calls
+   */
+  private async discoverTypescriptAgents(): Promise<Agent[]> {
+    const agents: Agent[] = [];
+    let baseUrl = process.env.TYPESCRIPT_AGENTS_URL || 'https://dev.agents.visualforge.ai';
+    const apiKey = process.env.TYPESCRIPT_AGENTS_API_KEY;
+    const enableFallback = process.env.ENABLE_FALLBACK_TESTING === 'true';
+    const fallbackUrl = process.env.TYPESCRIPT_AGENTS_FALLBACK_URL || 'http://localhost';
+    
+    // Try primary URL first, then fallback if enabled
+    const urlsToTry = [baseUrl];
+    if (enableFallback && baseUrl !== fallbackUrl) {
+      urlsToTry.push(fallbackUrl);
+    }
+    
+    // Define the TypeScript agents with their ports
+    const agentConfigs = [
+      { type: 'architect', port: 5001, id: 'ai-architect-agent-1' },
+      { type: 'developer', port: 5002, id: 'ai-developer-agent-1' },
+      { type: 'devops', port: 5003, id: 'ai-devops-agent-1' },
+      { type: 'qa', port: 5004, id: 'ai-qa-agent-1' },
+      { type: 'manager', port: 5005, id: 'ai-manager-agent-1' }
+    ];
+
+    for (const config of agentConfigs) {
+      let agentDiscovered = false;
+      
+      // Try each URL until we find a working agent
+      for (const tryUrl of urlsToTry) {
+        if (agentDiscovered) break;
+        
+        try {
+          const agentUrl = `${tryUrl}:${config.port}`;
+          logger.info(`Trying to discover ${config.type} agent at ${agentUrl}`);
+          
+          // Test health endpoint first
+          const healthResponse = await this.makeSecureRequest(`${agentUrl}/health`, apiKey);
+        
+        if (healthResponse && healthResponse.status === 'healthy') {
+          // Get detailed status
+          const statusResponse = await this.makeSecureRequest(`${agentUrl}/status`, apiKey);
+          const queueResponse = await this.makeSecureRequest(`${agentUrl}/queue`, apiKey);
+          
+          const agent: Agent = {
+            id: config.id,
+            name: `${config.type} Agent (TypeScript)`,
+            type: config.type as Agent['type'],
+            status: this.mapTypescriptStatus(statusResponse?.status || 'idle'),
+            platform: 'local', // TypeScript agents are containerized/local
+            lastSeen: new Date(),
+            currentTask: queueResponse?.currentTask?.type || undefined,
+            capabilities: this.getAgentCapabilities(config.type),
+            metrics: {
+              tasksCompleted: statusResponse?.metrics?.tasksCompleted || 0,
+              successRate: statusResponse?.metrics?.successRate || 0,
+              averageResponseTime: statusResponse?.metrics?.averageResponseTime || 0,
+              cpuUsage: statusResponse?.metrics?.cpuUsage || 0,
+              memoryUsage: statusResponse?.metrics?.memoryUsage || 0
+            },
+            cost: {
+              hourly: 0.001, // Very low cost for containerized agents
+              daily: 0.024,
+              monthly: 0.72
+            }
+          };
+          
+          agents.push(agent);
+          logger.info(`Discovered TypeScript ${config.type} agent at ${agentUrl}`);
+          agentDiscovered = true;
+        }
+        } catch (error) {
+          logger.warn(`Failed to connect to TypeScript ${config.type} agent at ${agentUrl}:`, error instanceof Error ? error.message : error);
+        }
+      }
+      
+      if (!agentDiscovered) {
+        logger.warn(`Could not discover ${config.type} agent at any URL`);
+      }
+    }
+
+    return agents;
+  }
+
+  /**
+   * Make secure HTTP request to TypeScript agents
+   */
+  private async makeSecureRequest(url: string, apiKey?: string): Promise<any> {
+    const headers: any = {
+      'Content-Type': 'application/json'
+    };
+    
+    if (apiKey) {
+      headers['X-API-Key'] = apiKey;
+    }
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers,
+      // @ts-ignore - fetch options
+      timeout: 10000 // 10 second timeout
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    return response.json();
+  }
+
+  /**
+   * Map TypeScript agent status to our status format
+   */
+  private mapTypescriptStatus(status: string): Agent['status'] {
+    switch (status?.toLowerCase()) {
+      case 'busy':
+      case 'processing':
+        return 'busy';
+      case 'idle':
+      case 'available':
+      case 'healthy':
+        return 'idle';
+      case 'offline':
+      case 'error':
+      case 'unhealthy':
+        return 'offline';
+      default:
+        return 'idle';
+    }
   }
 
   /**
@@ -723,6 +863,10 @@ export class UnifiedAgentService extends EventEmitter {
       case 'batch':
         response = await this.sendBatchMessage(agent, message, context);
         break;
+      case 'local':
+        // TypeScript agents - send HTTP request
+        response = await this.sendTypescriptMessage(agent, message, context);
+        break;
       default:
         // Simulate agent response for demo
         response = await this.simulateAgentResponse(agent, message);
@@ -749,6 +893,66 @@ export class UnifiedAgentService extends EventEmitter {
     this.broadcastToWebSockets('message', { conversation: agentId, message: agentMessage });
 
     return agentMessage;
+  }
+
+  /**
+   * Send message to TypeScript agent via HTTP API
+   */
+  private async sendTypescriptMessage(agent: Agent, message: string, context?: any): Promise<string> {
+    try {
+      const baseUrl = process.env.TYPESCRIPT_AGENTS_URL || 'https://dev.agents.visualforge.ai';
+      const apiKey = process.env.TYPESCRIPT_AGENTS_API_KEY;
+      
+      // Determine port based on agent type
+      const portMap: Record<string, number> = {
+        'architect': 5001,
+        'developer': 5002,
+        'devops': 5003,
+        'qa': 5004,
+        'manager': 5005
+      };
+      
+      const port = portMap[agent.type] || 5001;
+      const agentUrl = `${baseUrl}:${port}`;
+      
+      // Send task to agent
+      const taskPayload = {
+        taskId: `task-${Date.now()}`,
+        task: message,
+        priority: context?.priority || 5,
+        metadata: context
+      };
+      
+      const headers: any = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (apiKey) {
+        headers['X-API-Key'] = apiKey;
+      }
+      
+      const response = await fetch(`${agentUrl}/agent/${agent.id}/task`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(taskPayload),
+        // @ts-ignore
+        timeout: 30000 // 30 second timeout
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
+      return result.success 
+        ? `Task accepted by ${agent.type} agent. Estimated completion: ${result.estimatedCompletionTime || 'unknown'}`
+        : `Task failed: ${result.error || 'Unknown error'}`;
+        
+    } catch (error) {
+      logger.error(`Error sending message to TypeScript ${agent.type} agent:`, error);
+      return `Error communicating with ${agent.type} agent: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    }
   }
 
   /**
@@ -1177,6 +1381,10 @@ export class UnifiedAgentService extends EventEmitter {
       case 'ec2':
         taskId = await this.submitEC2Task(agent, request);
         break;
+      case 'local':
+        // TypeScript agents
+        taskId = await this.submitTypescriptTask(agent, request);
+        break;
       default:
         taskId = `task-${Date.now()}`;
         // Simulate task completion for demo
@@ -1192,6 +1400,118 @@ export class UnifiedAgentService extends EventEmitter {
     this.broadcastToWebSockets('task-submitted', { agentId: agent.id, taskId, task: request.task });
 
     return taskId;
+  }
+
+  /**
+   * Submit task to TypeScript agent
+   */
+  private async submitTypescriptTask(agent: Agent, request: TaskRequest): Promise<string> {
+    try {
+      const baseUrl = process.env.TYPESCRIPT_AGENTS_URL || 'https://dev.agents.visualforge.ai';
+      const apiKey = process.env.TYPESCRIPT_AGENTS_API_KEY;
+      
+      // Determine port based on agent type
+      const portMap: Record<string, number> = {
+        'architect': 5001,
+        'developer': 5002,
+        'devops': 5003,
+        'qa': 5004,
+        'manager': 5005
+      };
+      
+      const port = portMap[agent.type] || 5001;
+      const agentUrl = `${baseUrl}:${port}`;
+      
+      const taskPayload = {
+        taskId: `typescript-task-${Date.now()}`,
+        task: request.task,
+        priority: request.priority === 'high' ? 8 : request.priority === 'medium' ? 5 : 2,
+        metadata: {
+          context: request.context,
+          timeout: request.timeout,
+          issueNumber: request.issueNumber,
+          repository: request.repository
+        }
+      };
+      
+      const headers: any = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (apiKey) {
+        headers['X-API-Key'] = apiKey;
+      }
+      
+      const response = await fetch(`${agentUrl}/agent/${agent.id}/task`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(taskPayload),
+        // @ts-ignore
+        timeout: 30000
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
+      // Schedule status update check
+      setTimeout(() => {
+        this.checkTypescriptTaskStatus(agent, result.taskId || taskPayload.taskId);
+      }, 10000); // Check after 10 seconds
+      
+      return result.taskId || taskPayload.taskId;
+      
+    } catch (error) {
+      logger.error(`Error submitting task to TypeScript ${agent.type} agent:`, error);
+      // Fallback to local task ID
+      return `typescript-task-${Date.now()}-failed`;
+    }
+  }
+
+  /**
+   * Check TypeScript task status
+   */
+  private async checkTypescriptTaskStatus(agent: Agent, taskId: string): Promise<void> {
+    try {
+      const baseUrl = process.env.TYPESCRIPT_AGENTS_URL || 'https://dev.agents.visualforge.ai';
+      const apiKey = process.env.TYPESCRIPT_AGENTS_API_KEY;
+      
+      const portMap: Record<string, number> = {
+        'architect': 5001,
+        'developer': 5002,
+        'devops': 5003,
+        'qa': 5004,
+        'manager': 5005
+      };
+      
+      const port = portMap[agent.type] || 5001;
+      const agentUrl = `${baseUrl}:${port}`;
+      
+      const queueResponse = await this.makeSecureRequest(`${agentUrl}/queue`, apiKey);
+      
+      // Check if task is still in queue or completed
+      const taskInQueue = queueResponse?.tasks?.find((t: any) => t.id === taskId);
+      
+      if (!taskInQueue) {
+        // Task completed
+        agent.status = 'idle';
+        agent.currentTask = undefined;
+        agent.metrics.tasksCompleted++;
+        this.emit('task-completed', { agentId: agent.id, taskId, task: agent.currentTask });
+      } else {
+        // Task still processing, check again later
+        setTimeout(() => {
+          this.checkTypescriptTaskStatus(agent, taskId);
+        }, 10000);
+      }
+    } catch (error) {
+      logger.warn(`Error checking TypeScript task status:`, error);
+      // Assume completed on error
+      agent.status = 'idle';
+      agent.currentTask = undefined;
+    }
   }
 
   /**
@@ -1677,3 +1997,9 @@ export class UnifiedAgentService extends EventEmitter {
 }
 
 export default UnifiedAgentService;
+
+// Ensure fetch is available (for Node.js environments)
+if (typeof fetch === 'undefined') {
+  // @ts-ignore
+  global.fetch = require('node-fetch');
+}
