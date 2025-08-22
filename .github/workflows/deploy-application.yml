@@ -162,6 +162,8 @@ jobs:
         run: |
           # Create deployment package
           cd api
+          npm ci
+          npm run build
           npm ci --production
           tar -czf ../api-deployment.tar.gz \
             --exclude=node_modules/.cache \
