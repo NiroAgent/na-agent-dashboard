@@ -10,11 +10,23 @@ import json
 import time
 import random
 from datetime import datetime
-from flask import Flask, jsonify
-from flask_cors import CORS
 
-app = Flask(__name__)
-CORS(app)
+try:
+    from flask import Flask, jsonify
+    from flask_cors import CORS
+    Flask = Flask
+    app = Flask(__name__)
+    CORS(app)
+    FLASK_AVAILABLE = True
+except ImportError:
+    print("Flask not available. Using simple HTTP server instead.")
+    import http.server
+    import socketserver
+    from urllib.parse import urlparse, parse_qs
+    Flask = None
+    jsonify = None
+    CORS = None
+    FLASK_AVAILABLE = False
 
 # Real agent discovery paths
 AGENT_PATHS = [
@@ -135,107 +147,193 @@ class RealAgentDiscovery:
 # Initialize discovery service
 agent_discovery = RealAgentDiscovery()
 
-@app.route('/health')
-def health():
-    return jsonify({
-        "message": "Real Agent Discovery API", 
-        "status": "running",
-        "port": 7778,
-        "agents_discovered": len(agent_discovery.agents),
-        "last_scan": agent_discovery.last_scan.isoformat() if agent_discovery.last_scan else None
-    })
-
-@app.route('/api/agents')
-def get_agents():
-    """Get discovered real agents"""
-    agents = agent_discovery.get_agents()
-    return jsonify(agents)
-
-@app.route('/api/dashboard/agents')
-def get_dashboard_agents():
-    """Dashboard-formatted agent data"""
-    agents = agent_discovery.get_agents()
-    
-    return jsonify({
-        "success": True,
-        "agents": agents,
-        "lastUpdated": datetime.now().isoformat(),
-        "totalAgents": len(agents),
-        "activeAgents": len([a for a in agents if a['status'] in ['active', 'idle']]),
-        "dataSources": ["Filesystem Discovery"],
-        "source": "real-agent-discovery-server",
-        "port": 7778
-    })
-
-@app.route('/api/dashboard/live-data')
-def get_live_data():
-    """Live data endpoint with real agent metrics"""
-    agents = agent_discovery.get_agents()
-    
-    # Calculate real metrics from discovered agents
-    total_agents = len(agents)
-    active_agents = len([a for a in agents if a['status'] in ['active', 'idle']])
-    
-    if total_agents > 0:
-        avg_cpu = sum(a['cpuUsage'] for a in agents) / total_agents
-        avg_memory = sum(a['memoryUsage'] for a in agents) / total_agents
-        total_tasks = sum(a['taskCount'] for a in agents)
-    else:
-        avg_cpu = avg_memory = total_tasks = 0
-    
-    return jsonify({
-        "success": True,
-        "data": {
-            "agents": agents,
-            "systemMetrics": {
-                "overallCpuUsage": avg_cpu,
-                "overallMemoryUsage": avg_memory,
-                "activeInstances": active_agents,
-                "totalCost": total_agents * 0.02,  # Rough estimate
-                "totalTasks": total_tasks
-            },
-            "lastUpdated": datetime.now().isoformat()
-        },
-        "timestamp": datetime.now().isoformat(),
-        "sources": "Real Agent Discovery from Filesystem",
-        "port": 7778
-    })
-
-@app.route('/api/dashboard/data-sources')
-def get_data_sources():
-    """Data source status"""
-    agents = agent_discovery.get_agents()
-    
-    sources = []
-    for path in AGENT_PATHS:
-        agent_count = len([a for a in agents if path in a['file_path']])
-        sources.append({
-            "name": os.path.basename(path),
-            "status": "connected" if os.path.exists(path) else "disconnected",
-            "url": path,
-            "lastCheck": datetime.now().isoformat(),
-            "agentCount": agent_count
+# Flask routes (only if Flask is available)
+if FLASK_AVAILABLE:
+    @app.route('/health')
+    def health():
+        return jsonify({
+            "message": "Real Agent Discovery API", 
+            "status": "running",
+            "port": 7778,
+            "agents_discovered": len(agent_discovery.agents),
+            "last_scan": agent_discovery.last_scan.isoformat() if agent_discovery.last_scan else None
         })
-    
-    return jsonify({
-        "success": True,
-        "dataSources": sources,
-        "connectedSources": len([s for s in sources if s['status'] == 'connected']),
-        "totalSources": len(sources),
-        "lastCheck": datetime.now().isoformat()
-    })
 
-@app.route('/api/dashboard/refresh', methods=['POST'])
-def refresh_data():
-    """Force refresh of agent discovery"""
-    agent_discovery.discover_agents()
+    @app.route('/api/agents')
+    def get_agents():
+        """Get discovered real agents"""
+        agents = agent_discovery.get_agents()
+        return jsonify(agents)
+
+    @app.route('/api/dashboard/agents')
+    def get_dashboard_agents():
+        """Dashboard-formatted agent data"""
+        agents = agent_discovery.get_agents()
+        
+        return jsonify({
+            "success": True,
+            "agents": agents,
+            "lastUpdated": datetime.now().isoformat(),
+            "totalAgents": len(agents),
+            "activeAgents": len([a for a in agents if a['status'] in ['active', 'idle']]),
+            "dataSources": ["Filesystem Discovery"],
+            "source": "real-agent-discovery-server",
+            "port": 7778
+        })
+
+    @app.route('/api/dashboard/live-data')
+    def get_live_data():
+        """Live data endpoint with real agent metrics"""
+        agents = agent_discovery.get_agents()
+        
+        # Calculate real metrics from discovered agents
+        total_agents = len(agents)
+        active_agents = len([a for a in agents if a['status'] in ['active', 'idle']])
+        
+        if total_agents > 0:
+            avg_cpu = sum(a['cpuUsage'] for a in agents) / total_agents
+            avg_memory = sum(a['memoryUsage'] for a in agents) / total_agents
+            total_tasks = sum(a['taskCount'] for a in agents)
+        else:
+            avg_cpu = avg_memory = total_tasks = 0
+        
+        return jsonify({
+            "success": True,
+            "data": {
+                "agents": agents,
+                "systemMetrics": {
+                    "overallCpuUsage": avg_cpu,
+                    "overallMemoryUsage": avg_memory,
+                    "activeInstances": active_agents,
+                    "totalCost": total_agents * 0.02,  # Rough estimate
+                    "totalTasks": total_tasks
+                },
+                "lastUpdated": datetime.now().isoformat()
+            },
+            "timestamp": datetime.now().isoformat(),
+            "sources": "Real Agent Discovery from Filesystem",
+            "port": 7778
+        })
+
+    @app.route('/api/dashboard/data-sources')
+    def get_data_sources():
+        """Data source status"""
+        agents = agent_discovery.get_agents()
+        
+        sources = []
+        for path in AGENT_PATHS:
+            agent_count = len([a for a in agents if path in a['file_path']])
+            sources.append({
+                "name": os.path.basename(path),
+                "status": "connected" if os.path.exists(path) else "disconnected",
+                "url": path,
+                "lastCheck": datetime.now().isoformat(),
+                "agentCount": agent_count
+            })
+        
+        return jsonify({
+            "success": True,
+            "dataSources": sources,
+            "connectedSources": len([s for s in sources if s['status'] == 'connected']),
+            "totalSources": len(sources),
+            "lastCheck": datetime.now().isoformat()
+        })
+
+    @app.route('/api/dashboard/refresh', methods=['POST'])
+    def refresh_data():
+        """Force refresh of agent discovery"""
+        agent_discovery.discover_agents()
+        
+        return jsonify({
+            "success": True,
+            "message": "Agent discovery refreshed from filesystem",
+            "lastUpdated": datetime.now().isoformat(),
+            "agentCount": len(agent_discovery.agents)
+        })
+
+# Simple HTTP server as fallback
+class SimpleHTTPHandler(http.server.BaseHTTPRequestHandler):
+    """Simple HTTP server as Flask fallback"""
     
-    return jsonify({
-        "success": True,
-        "message": "Agent discovery refreshed from filesystem",
-        "lastUpdated": datetime.now().isoformat(),
-        "agentCount": len(agent_discovery.agents)
-    })
+    def do_GET(self):
+        path = urlparse(self.path).path
+        
+        if path == '/health':
+            response = {
+                "message": "Real Agent Discovery API", 
+                "status": "running",
+                "port": 7778,
+                "agents_discovered": len(agent_discovery.agents),
+                "last_scan": agent_discovery.last_scan.isoformat() if agent_discovery.last_scan else None
+            }
+        elif path == '/api/agents':
+            response = agent_discovery.get_agents()
+        elif path == '/api/dashboard/agents':
+            agents = agent_discovery.get_agents()
+            response = {
+                "success": True,
+                "agents": agents,
+                "lastUpdated": datetime.now().isoformat(),
+                "totalAgents": len(agents),
+                "activeAgents": len([a for a in agents if a['status'] in ['active', 'idle']]),
+                "dataSources": ["Filesystem Discovery"],
+                "source": "real-agent-discovery-server",
+                "port": 7778
+            }
+        elif path == '/api/dashboard/live-data':
+            agents = agent_discovery.get_agents()
+            total_agents = len(agents)
+            active_agents = len([a for a in agents if a['status'] in ['active', 'idle']])
+            
+            if total_agents > 0:
+                avg_cpu = sum(a['cpuUsage'] for a in agents) / total_agents
+                avg_memory = sum(a['memoryUsage'] for a in agents) / total_agents
+                total_tasks = sum(a['taskCount'] for a in agents)
+            else:
+                avg_cpu = avg_memory = total_tasks = 0
+            
+            response = {
+                "success": True,
+                "data": {
+                    "agents": agents,
+                    "systemMetrics": {
+                        "overallCpuUsage": avg_cpu,
+                        "overallMemoryUsage": avg_memory,
+                        "activeInstances": active_agents,
+                        "totalCost": total_agents * 0.02,
+                        "totalTasks": total_tasks
+                    },
+                    "lastUpdated": datetime.now().isoformat()
+                },
+                "timestamp": datetime.now().isoformat(),
+                "sources": "Real Agent Discovery from Filesystem",
+                "port": 7778
+            }
+        else:
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b'Not Found')
+            return
+        
+        # Send JSON response
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
+        self.wfile.write(json.dumps(response, indent=2).encode())
+    
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
+
+    def log_message(self, format, *args):
+        # Suppress log messages
+        pass
 
 if __name__ == '__main__':
     print("🔍 Starting Real Agent Discovery Server...")
@@ -243,4 +341,9 @@ if __name__ == '__main__':
     print(f"📁 Scanning paths: {AGENT_PATHS}")
     print("🚀 Server starting...")
     
-    app.run(host='0.0.0.0', port=7778, debug=False)
+    if FLASK_AVAILABLE:
+        app.run(host='0.0.0.0', port=7778, debug=False)
+    else:
+        print("📦 Using simple HTTP server (Flask not available)")
+        with socketserver.TCPServer(("0.0.0.0", 7778), SimpleHTTPHandler) as httpd:
+            httpd.serve_forever()

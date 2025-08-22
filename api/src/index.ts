@@ -9,6 +9,7 @@ import { AgentManager } from './services/AgentManager';
 import { SystemMonitor } from './services/SystemMonitor';
 import { TerminalManager } from './services/TerminalManager';
 import { GitHubService } from './services/GitHubService';
+import { RealAgentDiscovery } from './services/RealAgentDiscovery';
 import agentRoutes from './routes/agents';
 import systemRoutes from './routes/system';
 import githubRoutes from './routes/github';
@@ -34,6 +35,7 @@ const agentManager = new AgentManager();
 const systemMonitor = new SystemMonitor();
 const terminalManager = new TerminalManager(io);
 const githubService = new GitHubService();
+const realAgentDiscovery = new RealAgentDiscovery();
 
 // Make services available to routes
 app.locals.agentManager = agentManager;
@@ -47,15 +49,23 @@ app.use('/api/system', systemRoutes);
 app.use('/api/github', githubRoutes);
 
 // Health check
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
+  const realAgentHealth = realAgentDiscovery.getHealthStatus();
   res.json({ 
     status: 'healthy',
     timestamp: new Date().toISOString(),
     services: {
       agents: agentManager.getStatus(),
-      system: systemMonitor.getStatus()
+      system: systemMonitor.getStatus(),
+      realAgents: realAgentHealth
     }
   });
+});
+
+// Add real agent discovery routes at root level to match Python server
+app.get('/health', async (req, res) => {
+  const healthStatus = realAgentDiscovery.getHealthStatus();
+  res.json(healthStatus);
 });
 
 // Socket.IO connections
@@ -112,8 +122,8 @@ setInterval(() => {
   io.emit('agents:status', agentManager.getAllAgents());
 }, 2000); // Every 2 seconds
 
-// Start server
-const PORT = process.env.PORT || 3001;
+// Start server - Use 7778 to match Python real agent server
+const PORT = process.env.PORT || 7778;
 httpServer.listen(PORT, () => {
   console.log(`🚀 Agent Dashboard Backend running on http://localhost:${PORT}`);
   console.log(`📊 Frontend should connect to ws://localhost:${PORT}`);
