@@ -5,3 +5,4 @@ node_modules
 logs/
 api-logs.txt
 terminaloutput.log
+venv/
