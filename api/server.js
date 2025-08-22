@@ -12,8 +12,36 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 7777;
 
-// Enable CORS for all routes
-app.use(cors());
+// Enable CORS with explicit configuration for all methods
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
+    credentials: false
+}));
+
+// Explicitly handle OPTIONS preflight requests
+app.options('*', (req, res) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept');
+    res.header('Access-Control-Max-Age', '86400'); // 24 hours
+    res.status(200).send();
+});
+
+// Explicitly handle HEAD requests for all routes
+app.use((req, res, next) => {
+    if (req.method === 'HEAD') {
+        // For HEAD requests, set the same headers as GET but don't send body
+        const originalSend = res.send;
+        res.send = function(data) {
+            res.removeHeader('content-length');
+            res.end();
+        };
+    }
+    next();
+});
+
 app.use(express.json());
 
 // Discover real agents from filesystem
@@ -85,7 +113,7 @@ function getAgentCapabilities(agentType) {
     return capabilityMap[agentType] || ['general-purpose', 'task-execution'];
 }
 
-// API Routes
+// API Routes with HEAD support
 app.get('/health', (req, res) => {
     res.json({ 
         status: 'healthy', 
@@ -162,6 +190,39 @@ app.get('/stats', (req, res) => {
             error: error.message
         });
     }
+});
+
+// Add explicit HEAD route handlers
+app.head('/health', (req, res) => {
+    res.set({
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+    });
+    res.status(200).end();
+});
+
+app.head('/agents', (req, res) => {
+    res.set({
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+    });
+    res.status(200).end();
+});
+
+app.head('/agents/:id', (req, res) => {
+    res.set({
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+    });
+    res.status(200).end();
+});
+
+app.head('/stats', (req, res) => {
+    res.set({
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+    });
+    res.status(200).end();
 });
 
 // Start server
