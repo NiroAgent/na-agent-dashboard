@@ -128,6 +128,29 @@ jobs:
             --tags Environment=staging Project=NiroAgentDashboard \
             --no-fail-on-empty-changeset
 
+      - name: Get stack outputs
+        id: stack-outputs
+        run: |
+          aws cloudformation describe-stacks \
+            --stack-name niro-agent-dashboard-staging \
+            --query 'Stacks[0].Outputs' \
+            --output json > stack-outputs.json
+          
+          echo "frontend-bucket=$(jq -r '.[] | select(.OutputKey=="FrontendBucketName") | .OutputValue' stack-outputs.json)" >> $GITHUB_OUTPUT
+          echo "cloudfront-id=$(jq -r '.[] | select(.OutputKey=="CloudFrontDistributionId") | .OutputValue' stack-outputs.json)" >> $GITHUB_OUTPUT
+          echo "website-url=$(jq -r '.[] | select(.OutputKey=="WebsiteURL") | .OutputValue' stack-outputs.json)" >> $GITHUB_OUTPUT
+          echo "api-endpoint=$(jq -r '.[] | select(.OutputKey=="ApiEndpoint") | .OutputValue' stack-outputs.json)" >> $GITHUB_OUTPUT
+
+      - name: Create deployment summary
+        run: |
+          echo "## 🚀 Staging Infrastructure Deployed" >> $GITHUB_STEP_SUMMARY
+          echo "| Resource | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend Bucket | \`${{ steps.stack-outputs.outputs.frontend-bucket }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| CloudFront ID | \`${{ steps.stack-outputs.outputs.cloudfront-id }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Website URL | [${{ steps.stack-outputs.outputs.website-url }}](${{ steps.stack-outputs.outputs.website-url }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| API Endpoint | [${{ steps.stack-outputs.outputs.api-endpoint }}](${{ steps.stack-outputs.outputs.api-endpoint }}/health) |" >> $GITHUB_STEP_SUMMARY
+
   deploy-prod:
     name: Deploy to Production
     runs-on: ubuntu-latest

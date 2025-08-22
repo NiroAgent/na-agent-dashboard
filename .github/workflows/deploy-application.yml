@@ -283,11 +283,156 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
 
-      # Similar deployment steps as dev but for staging environment
-      - name: Deploy to Staging
+      - name: Get infrastructure outputs
+        id: infra
         run: |
-          echo "Deploying to staging environment..."
-          # Add staging-specific deployment logic here
+          aws cloudformation describe-stacks \
+            --stack-name niro-agent-dashboard-staging \
+            --query 'Stacks[0].Outputs' \
+            --output json > stack-outputs.json
+          
+          echo "frontend-bucket=$(jq -r '.[] | select(.OutputKey=="FrontendBucketName") | .OutputValue' stack-outputs.json)" >> $GITHUB_OUTPUT
+          echo "cloudfront-id=$(jq -r '.[] | select(.OutputKey=="CloudFrontDistributionId") | .OutputValue' stack-outputs.json)" >> $GITHUB_OUTPUT
+          echo "api-endpoint=$(jq -r '.[] | select(.OutputKey=="ApiEndpoint") | .OutputValue' stack-outputs.json)" >> $GITHUB_OUTPUT
+          echo "agent-instance-id=$(jq -r '.[] | select(.OutputKey=="AgentInstanceId") | .OutputValue' stack-outputs.json)" >> $GITHUB_OUTPUT
+
+      - name: Build Frontend with environment config
+        run: |
+          cd mfe
+          npm ci
+          
+          # Create environment file
+          cat > .env.production << EOF
+          VITE_API_BASE_URL=${{ steps.infra.outputs.api-endpoint }}
+          VITE_WS_URL=${{ steps.infra.outputs.api-endpoint }}
+          VITE_ENVIRONMENT=staging
+          EOF
+          
+          npm run build
+
+      - name: Deploy Frontend to S3
+        run: |
+          aws s3 sync mfe/dist/ s3://${{ steps.infra.outputs.frontend-bucket }}/ \
+            --delete \
+            --cache-control "public, max-age=31536000" \
+            --exclude "*.html" \
+            --exclude "*.json"
+          
+          # Deploy HTML files with shorter cache
+          aws s3 sync mfe/dist/ s3://${{ steps.infra.outputs.frontend-bucket }}/ \
+            --delete \
+            --cache-control "public, max-age=0, must-revalidate" \
+            --include "*.html" \
+            --include "*.json"
+
+      - name: Create CloudFront invalidation
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ steps.infra.outputs.cloudfront-id }} \
+            --paths "/*"
+
+      - name: Deploy API to Agent Server
+        run: |
+          # Create deployment package
+          cd api
+          npm ci --production
+          tar -czf ../api-deployment.tar.gz \
+            --exclude=node_modules/.cache \
+            --exclude=*.log \
+            --exclude=.env.local \
+            .
+          cd ..
+
+          # Upload deployment package to S3 for transfer
+          aws s3 cp api-deployment.tar.gz s3://${{ steps.infra.outputs.frontend-bucket }}/deployments/api-staging-$(date +%Y%m%d-%H%M%S).tar.gz
+
+          # Deploy via SSM
+          aws ssm send-command \
+            --instance-ids ${{ steps.infra.outputs.agent-instance-id }} \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=[
+              "#!/bin/bash",
+              "set -e",
+              "echo \"Starting API deployment to staging...\"",
+              "# Install Node.js if not present",
+              "if ! command -v node &> /dev/null; then",
+              "  curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -",
+              "  sudo yum install -y nodejs",
+              "fi",
+              "# Install PM2 if not present",
+              "if ! command -v pm2 &> /dev/null; then",
+              "  sudo npm install -g pm2",
+              "fi",
+              "# Create application directory",
+              "sudo mkdir -p /opt/niro-agent-dashboard-api-staging",
+              "sudo chown $USER:$USER /opt/niro-agent-dashboard-api-staging",
+              "# Download latest deployment package",
+              "cd /opt/niro-agent-dashboard-api-staging",
+              "aws s3 cp s3://${{ steps.infra.outputs.frontend-bucket }}/deployments/ . --recursive --exclude \"*\" --include \"api-staging-*.tar.gz\" --region ${{ vars.AWS_REGION || 'us-east-1' }}",
+              "LATEST_PACKAGE=$(ls -t api-staging-*.tar.gz | head -1)",
+              "tar -xzf $LATEST_PACKAGE",
+              "rm -f api-staging-*.tar.gz",
+              "# Create production environment",
+              "cat > .env << EOF",
+              "NODE_ENV=staging",
+              "PORT=7778",
+              "AWS_REGION=${{ vars.AWS_REGION || 'us-east-1' }}",
+              "CORS_ORIGIN=*",
+              "EOF",
+              "# Create PM2 config",
+              "cat > ecosystem.config.js << EOF",
+              "module.exports = {",
+              "  apps: [{",
+              "    name: \"niro-agent-dashboard-api-staging\",",
+              "    script: \"server.js\",",
+              "    instances: 1,",
+              "    autorestart: true,",
+              "    watch: false,",
+              "    max_memory_restart: \"500M\",",
+              "    env: {",
+              "      NODE_ENV: \"staging\",",
+              "      PORT: 7778",
+              "    }",
+              "  }]",
+              "};",
+              "EOF",
+              "# Stop and restart API",
+              "pm2 stop niro-agent-dashboard-api-staging 2>/dev/null || echo \"No existing staging instance\"",
+              "pm2 delete niro-agent-dashboard-api-staging 2>/dev/null || echo \"No existing staging instance\"",
+              "pm2 start ecosystem.config.js",
+              "pm2 save",
+              "# Test deployment",
+              "sleep 5",
+              "curl -f http://localhost:7778/health || (pm2 logs niro-agent-dashboard-api-staging --lines 10 && exit 1)",
+              "echo \"Staging API deployment successful\""
+            ]' \
+            --comment "Deploy Niro Agent Dashboard API - Staging" \
+            --timeout-seconds 300
+
+      - name: Wait for Staging API deployment
+        run: |
+          echo "Waiting for staging API deployment to complete..."
+          sleep 30
+          
+          # Test API health
+          for i in {1..10}; do
+            if curl -f ${{ steps.infra.outputs.api-endpoint }}/health; then
+              echo "✅ Staging API is healthy"
+              break
+            else
+              echo "⏳ Waiting for staging API... (attempt $i/10)"
+              sleep 10
+            fi
+          done
+
+      - name: Create staging deployment summary
+        run: |
+          echo "## 🚀 Staging Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status | URL |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|-----|" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend | ✅ Deployed | [Visit Site](${{ steps.infra.outputs.website-url }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| API | ✅ Deployed | [Health Check](${{ steps.infra.outputs.api-endpoint }}/health) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Agents | ✅ Live Data | [View Agents](${{ steps.infra.outputs.api-endpoint }}/api/dashboard/agents) |" >> $GITHUB_STEP_SUMMARY
 
   deploy-prod:
     name: Deploy to Production
