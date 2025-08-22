@@ -2,7 +2,16 @@ name: Deploy Application
 
 on:
   push:
-    branches: [main, staging, dev]
+    branches: 
+      - dev                    # → Development deployments
+      - 'release-*'           # → Staging deployments  
+      - main                  # → Production deployments
+    paths-ignore:
+      - 'infrastructure/**'
+      - '.github/workflows/deploy-infrastructure.yml'
+      - '*.md'
+  pull_request:
+    branches: [main]          # → PR validation
     paths-ignore:
       - 'infrastructure/**'
       - '.github/workflows/deploy-infrastructure.yml'
@@ -266,7 +275,7 @@ jobs:
     name: Deploy to Staging
     runs-on: ubuntu-latest
     needs: test
-    if: github.ref == 'refs/heads/staging' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    if: startsWith(github.ref, 'refs/heads/release-') || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
     environment: staging
     steps:
       - name: Checkout code
