@@ -39,7 +39,7 @@ import SystemMetrics from './components/SystemMetrics';
 import TerminalView from './components/TerminalView';
 import IssuePanel from './components/IssuePanel';
 import { useSocket } from './hooks/useSocket';
-import { useExternalData } from './hooks/useExternalData';
+// Removed useExternalData import - only using real API data
 import { Agent, SystemInfo } from './types';
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:7777';
@@ -72,7 +72,7 @@ function App() {
   const [activeTab, setActiveTab] = useState(0);
   
   const socket = useSocket();
-  const { data: externalData, loading: externalLoading, error: externalError, refreshData, dataSourceStatus } = useExternalData();
+  // Removed external data hook - only using real API data from /api/agents
 
   // Fetch agents data via HTTP
   const fetchAgents = async () => {
@@ -80,7 +80,8 @@ function App() {
       const response = await fetch(`${API_BASE_URL}/api/agents`);
       if (response.ok) {
         const data = await response.json();
-        setAgents(data.agents || []);
+        // API returns agents array directly, not wrapped in object
+        setAgents(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       console.error('Failed to fetch agents:', error);
@@ -209,8 +210,8 @@ function App() {
     }
   };
 
-  const runningAgents = (activeTab === 0 ? agents : externalData?.agents || []).filter((a: any) => a.status === 'idle' || a.status === 'busy' || a.status === 'running').length;
-  const totalAgents = (activeTab === 0 ? agents : externalData?.agents || []).length;
+  const runningAgents = agents.filter((a: any) => a.status === 'idle' || a.status === 'busy' || a.status === 'active').length;
+  const totalAgents = agents.length;
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
