@@ -17,6 +17,10 @@ export interface Agent {
     cpuUsage?: number;
     memoryUsage?: number;
   };
+  // Direct properties for real agent server compatibility
+  cpuUsage?: number;
+  memoryUsage?: number;
+  taskCount?: number;
   cost?: {
     hourly: number;
     daily: number;
