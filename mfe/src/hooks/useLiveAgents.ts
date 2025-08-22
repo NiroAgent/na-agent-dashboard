@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { LiveAgentMetrics } from '../types/policy';
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:7777';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:7778';
 
 interface UseLiveAgentsReturn {
   agents: LiveAgentMetrics[];

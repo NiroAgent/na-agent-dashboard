@@ -42,7 +42,7 @@ import { useSocket } from './hooks/useSocket';
 // Removed useExternalData import - only using real API data
 import { Agent, SystemInfo } from './types';
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:7777';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:7778';
 
 const darkTheme = createTheme({
   palette: {
