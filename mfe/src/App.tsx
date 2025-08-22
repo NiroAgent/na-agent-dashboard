@@ -436,37 +436,37 @@ function App() {
                 </Grid>
               )}
 
-              {/* Live System Metrics from External Sources */}
-              {externalData?.systemMetrics && (
+              {/* Live System Metrics from Real Agent Data */}
+              {agents.length > 0 && (
                 <Grid item xs={12}>
                   <Paper sx={{ p: 2, background: '#1a1a1a', border: '1px solid #333' }}>
                     <Typography variant="h6" gutterBottom sx={{ color: '#00ff88', display: 'flex', alignItems: 'center' }}>
                       <CloudIcon sx={{ mr: 1 }} />
-                      Live System Metrics (External Sources)
+                      Live System Metrics (Real Agent Data)
                     </Typography>
                     <Grid container spacing={2}>
                       <Grid item xs={3}>
                         <Paper sx={{ p: 2, textAlign: 'center', background: '#0a0a0a' }}>
-                          <Typography variant="h4" color="primary">{externalData.systemMetrics.overallCpuUsage.toFixed(1)}%</Typography>
-                          <Typography variant="caption">Overall CPU</Typography>
+                          <Typography variant="h4" color="primary">{agents.length > 0 ? (agents.reduce((sum, a) => sum + (a.cpuUsage || 0), 0) / agents.length).toFixed(1) : 0}%</Typography>
+                          <Typography variant="caption">Average CPU</Typography>
                         </Paper>
                       </Grid>
                       <Grid item xs={3}>
                         <Paper sx={{ p: 2, textAlign: 'center', background: '#0a0a0a' }}>
-                          <Typography variant="h4" color="primary">{externalData.systemMetrics.overallMemoryUsage.toFixed(1)}%</Typography>
-                          <Typography variant="caption">Overall Memory</Typography>
+                          <Typography variant="h4" color="primary">{agents.length > 0 ? (agents.reduce((sum, a) => sum + (a.memoryUsage || 0), 0) / agents.length).toFixed(1) : 0}%</Typography>
+                          <Typography variant="caption">Average Memory</Typography>
                         </Paper>
                       </Grid>
                       <Grid item xs={3}>
                         <Paper sx={{ p: 2, textAlign: 'center', background: '#0a0a0a' }}>
-                          <Typography variant="h4" color="primary">{externalData.systemMetrics.activeInstances}</Typography>
-                          <Typography variant="caption">Active Instances</Typography>
+                          <Typography variant="h4" color="primary">{runningAgents}</Typography>
+                          <Typography variant="caption">Active Agents</Typography>
                         </Paper>
                       </Grid>
                       <Grid item xs={3}>
                         <Paper sx={{ p: 2, textAlign: 'center', background: '#0a0a0a' }}>
-                          <Typography variant="h4" color="primary">${externalData.systemMetrics.totalCost.toFixed(2)}/hr</Typography>
-                          <Typography variant="caption">Total Cost</Typography>
+                          <Typography variant="h4" color="primary">{agents.reduce((sum, a) => sum + (a.taskCount || 0), 0)}</Typography>
+                          <Typography variant="caption">Total Tasks</Typography>
                         </Paper>
                       </Grid>
                     </Grid>
@@ -474,10 +474,10 @@ function App() {
                 </Grid>
               )}
 
-              {/* Policy Dashboard with External Data */}
-              {externalData?.policies && (
+              {/* Policy Dashboard with Real Agent Data */}
+              {agents.length > 0 && (
                 <Grid item xs={12}>
-                  <PolicyDashboard agents={externalData.agents || []} />
+                  <PolicyDashboard agents={agents} />
                 </Grid>
               )}
 
@@ -486,12 +486,12 @@ function App() {
                 <Paper sx={{ p: 2, background: '#1a1a1a', border: '1px solid #333' }}>
                   <Typography variant="h6" gutterBottom sx={{ color: '#00ff88', display: 'flex', alignItems: 'center' }}>
                     <AnalyticsIcon sx={{ mr: 1 }} />
-                    Live Agents from External Sources ({runningAgents} running)
+                    Live Agents from Real API ({runningAgents} running)
                   </Typography>
                   
-                  {externalData?.agents && externalData.agents.length > 0 ? (
+                  {agents.length > 0 ? (
                     <EnhancedAgentGrid 
-                      agents={externalData.agents}
+                      agents={agents}
                       onStart={handleStartAgent}
                       onStop={handleStopAgent}
                       onRestart={handleRestartAgent}
@@ -521,7 +521,7 @@ function App() {
                     overflow: 'hidden'
                   }}>
                     <Typography variant="h6" gutterBottom sx={{ color: '#00ff88' }}>
-                      Terminal - {externalData?.agents?.find((a: any) => a.id === selectedAgent)?.name || 'Select Agent'}
+                      Terminal - {agents.find((a: any) => a.id === selectedAgent)?.name || 'Select Agent'}
                     </Typography>
                     {selectedAgent && (
                       <TerminalView 
