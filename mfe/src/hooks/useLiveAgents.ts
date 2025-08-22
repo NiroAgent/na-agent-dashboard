@@ -1,7 +1,28 @@
 import { useState, useEffect } from 'react';
 import { LiveAgentMetrics } from '../types/policy';
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:7778';
+// Auto-detect API endpoint based on environment
+const getApiBaseUrl = () => {
+  // Check for explicit environment variable first
+  const envUrl = (import.meta as any).env?.VITE_API_BASE_URL;
+  if (envUrl) {
+    return envUrl;
+  }
+  
+  // Auto-detect based on current hostname
+  const hostname = window.location.hostname;
+  
+  if (hostname.includes('niro-agent-dashboard-dev') || hostname.includes('s3-website')) {
+    // Production environment - use the EC2 instance IP
+    // This should be the actual API endpoint for vf-dev
+    return 'http://98.81.93.132:7777';
+  }
+  
+  // Local development fallback
+  return 'http://localhost:7777';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 interface UseLiveAgentsReturn {
   agents: LiveAgentMetrics[];
