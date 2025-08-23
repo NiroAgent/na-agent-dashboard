@@ -156,7 +156,7 @@ test.describe('Real Agent Integration Tests', () => {
   });
 
   test('should monitor multiple agents simultaneously in UI', async ({ page }) => {
-    await page.goto('http://localhost:5173');
+    await page.goto('http://localhost:3001');
     await page.waitForLoadState('networkidle');
     
     // Wait for agents to load

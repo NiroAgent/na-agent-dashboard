@@ -106,26 +106,6 @@ app.get('/health', (req, res) => {
     });
 });
 
-// Dashboard-specific endpoint that the tests expect
-app.get('/api/dashboard/agents', (req, res) => {
-    try {
-        const agents = discoverAgents();
-        res.json({
-            success: true,
-            timestamp: new Date().toISOString(),
-            total: agents.length,
-            agents: agents
-        });
-    } catch (error) {
-        console.error('Error discovering agents:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message,
-            timestamp: new Date().toISOString()
-        });
-    }
-});
-
 app.get('/agents', (req, res) => {
     try {
         const agents = discoverAgents();
@@ -193,70 +173,6 @@ app.get('/stats', (req, res) => {
             error: error.message
         });
     }
-});
-
-// Dashboard data sources endpoint that tests expect
-app.get('/api/dashboard/data-sources', (req, res) => {
-    try {
-        const sources = [
-            {
-                name: "Filesystem Discovery",
-                status: "connected",
-                responseTime: 15,
-                lastCheck: new Date().toISOString()
-            }
-        ];
-        
-        res.json({
-            success: true,
-            sources: sources
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-// Live data endpoint that tests expect
-app.get('/api/dashboard/live-data', (req, res) => {
-    try {
-        const agents = discoverAgents();
-        const sources = [
-            {
-                name: "Filesystem Discovery",
-                status: "connected",
-                responseTime: 15,
-                lastCheck: new Date().toISOString()
-            }
-        ];
-        
-        res.json({
-            success: true,
-            agents: agents,
-            dataSources: sources,
-            timestamp: new Date().toISOString()
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-// Agent control operations endpoint (basic implementation)
-app.post('/api/dashboard/agents/:id/control', (req, res) => {
-    const { action } = req.body;
-    const { id } = req.params;
-    
-    // Since we're just doing filesystem discovery, we can't actually control agents
-    // But we'll simulate responses for testing
-    res.status(404).json({
-        success: false,
-        error: 'Agent control not available for filesystem-discovered agents'
-    });
 });
 
 // Start server

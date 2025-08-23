@@ -22,98 +22,64 @@ export interface Agent {
 export class AgentManager {
   private agents: Map<string, Agent> = new Map();
   private processes: Map<string, ChildProcess> = new Map();
-  private projectsDir = 'E:/Projects';
+  private projectsDir = 'E:\\Projects\\NiroAgent';
 
   constructor() {
     this.initializeAgentDefinitions();
   }
 
   private initializeAgentDefinitions() {
-    // Define all available agents
+    // Define real available agents discovered in the filesystem
     const agentConfigs: Agent[] = [
       {
-        id: 'sdlc-iterator',
-        name: 'SDLC Iterator',
-        description: 'Iterates through develop→test→deploy→document until production-ready',
-        script: 'sdlc-iterator-agent.py',
-        args: ['--continuous'],
-        status: 'stopped'
+        id: 'qa-agent-real',
+        name: 'QA Agent (Real)',
+        description: 'AI-powered quality assurance testing with real execution',
+        script: 'na-business-service\\ai-agent-deployment\\ai-qa-agent-real.py',
+        args: ['--live'],
+        status: 'stopped',
+        repo: 'na-business-service',
+        service: 'qa'
       },
       {
-        id: 'issue-monitor',
-        name: 'Issue Monitor',
-        description: 'Monitors GitHub issues and processes agent-task labels',
-        script: 'issue-driven-local-agent.py',
+        id: 'developer-agent-real',
+        name: 'Developer Agent (Real)',
+        description: 'AI-powered development assistant with real execution',
+        script: 'na-business-service\\ai-agent-deployment\\ai-developer-agent-real.py',
+        args: ['--live'],
+        status: 'stopped',
+        repo: 'na-business-service',
+        service: 'developer'
+      },
+      {
+        id: 'orchestrator-agent',
+        name: 'Agent Orchestrator',
+        description: 'Coordinates and manages other agents',
+        script: 'na-autonomous-system\\orchestrator-agent.py',
         args: ['--monitor'],
-        status: 'stopped'
-      },
-      {
-        id: 'ns-auth',
-        name: 'NS Auth Agent',
-        description: 'Tests and monitors ns-auth service',
-        script: 'local-agent-system.py',
-        args: ['--service', 'ns-auth'],
         status: 'stopped',
-        repo: 'NiroSubs-V2',
-        service: 'ns-auth'
+        repo: 'na-autonomous-system',
+        service: 'orchestrator'
       },
       {
-        id: 'ns-dashboard',
-        name: 'NS Dashboard Agent',
-        description: 'Tests and monitors ns-dashboard service',
-        script: 'local-agent-system.py',
-        args: ['--service', 'ns-dashboard'],
+        id: 'cost-monitor',
+        name: 'Cost Monitor Agent',
+        description: 'Monitors and optimizes system costs',
+        script: 'na-autonomous-system\\cost-optimized-agent-deployment.py',
+        args: ['--monitor'],
         status: 'stopped',
-        repo: 'NiroSubs-V2',
-        service: 'ns-dashboard'
+        repo: 'na-autonomous-system',
+        service: 'cost-monitor'
       },
       {
-        id: 'ns-payments',
-        name: 'NS Payments Agent',
-        description: 'Tests and monitors ns-payments service',
-        script: 'local-agent-system.py',
-        args: ['--service', 'ns-payments'],
+        id: 'github-agent',
+        name: 'GitHub Integration Agent',
+        description: 'Handles GitHub issues and PR management',
+        script: 'na-autonomous-system\\github-agent-dispatcher.py',
+        args: ['--continuous'],
         status: 'stopped',
-        repo: 'NiroSubs-V2',
-        service: 'ns-payments'
-      },
-      {
-        id: 'vf-audio',
-        name: 'VF Audio Agent',
-        description: 'Tests and monitors vf-audio-service',
-        script: 'local-agent-system.py',
-        args: ['--service', 'vf-audio-service'],
-        status: 'stopped',
-        repo: 'VisualForgeMediaV2',
-        service: 'vf-audio-service'
-      },
-      {
-        id: 'vf-video',
-        name: 'VF Video Agent',
-        description: 'Tests and monitors vf-video-service',
-        script: 'local-agent-system.py',
-        args: ['--service', 'vf-video-service'],
-        status: 'stopped',
-        repo: 'VisualForgeMediaV2',
-        service: 'vf-video-service'
-      },
-      {
-        id: 'vf-image',
-        name: 'VF Image Agent',
-        description: 'Tests and monitors vf-image-service',
-        script: 'local-agent-system.py',
-        args: ['--service', 'vf-image-service'],
-        status: 'stopped',
-        repo: 'VisualForgeMediaV2',
-        service: 'vf-image-service'
-      },
-      {
-        id: 'health-monitor',
-        name: 'Health Monitor',
-        description: 'Monitors overall system health',
-        script: 'orchestrator-agent.py',
-        args: [],
-        status: 'stopped'
+        repo: 'na-autonomous-system',
+        service: 'github'
       }
     ];
 

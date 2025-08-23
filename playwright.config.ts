@@ -22,8 +22,8 @@ export default defineConfig({
 
   webServer: [
     {
-      command: 'node live-agent-api.js',
-      port: 7778,
+      command: 'cd api && node server.js',
+      port: 7777,
       reuseExistingServer: true,
     },
     {

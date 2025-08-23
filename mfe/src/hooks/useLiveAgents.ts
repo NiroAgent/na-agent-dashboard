@@ -13,13 +13,13 @@ const getApiBaseUrl = () => {
   const hostname = window.location.hostname;
   
   if (hostname.includes('niro-agent-dashboard-dev') || hostname.includes('s3-website')) {
-    // Production environment - use the EC2 instance IP with real agent port
-    // Port 7778 serves real agents discovered from filesystem
-    return 'http://98.81.93.132:7778';
+    // Production environment - use the EC2 instance IP with LIVE agent manager
+    // Port 7777 serves live TypeScript API with real agent processes
+    return 'http://98.81.93.132:7777';
   }
   
-  // Local development - use real agent server
-  return 'http://localhost:7778';
+  // Local development - use live TypeScript agent manager
+  return 'http://localhost:7777';
 };
 
 const API_BASE_URL = getApiBaseUrl();
