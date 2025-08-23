@@ -1,0 +1,133 @@
+name: VF-Dev Nightly Dashboard Tests
+
+on:
+  schedule:
+    # Run nightly at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    # Allow manual trigger
+  push:
+    branches: [ main, dev ]
+    paths:
+      - 'tests/vf-dev*.spec.ts'
+      - 'mfe/src/**'
+      - '.github/workflows/vf-dev-nightly-tests.yml'
+
+jobs:
+  vf-dev-dashboard-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        npm ci
+        npx playwright install --with-deps chromium
+
+    - name: Run VF-Dev Dashboard Tests
+      run: |
+        echo "🧪 Running VF-Dev Dashboard Tests..."
+        npx playwright test tests/vf-dev-live-test.spec.ts --reporter=list
+      env:
+        CI: true
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: vf-dev-test-results
+        path: |
+          test-results/
+          playwright-report/
+        retention-days: 7
+
+    - name: Create test summary
+      if: always()
+      run: |
+        echo "## VF-Dev Dashboard Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Test Date:** $(date)" >> $GITHUB_STEP_SUMMARY
+        echo "**Dashboard URL:** http://niro-agent-dashboard-dev-816454053517.s3-website-us-east-1.amazonaws.com/" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ ${{ job.status }} == 'success' ]; then
+          echo "✅ **Status:** All tests passed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The VF-Dev dashboard is functioning correctly." >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Status:** Some tests failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Issues detected with the VF-Dev dashboard. Check logs for details." >> $GITHUB_STEP_SUMMARY
+        fi
+
+  api-connectivity-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+    - name: Check API Endpoints
+      run: |
+        echo "🔍 Checking API endpoint connectivity..."
+        
+        # Test main API endpoint
+        if curl -f -s --max-time 10 http://98.81.93.132:7777/health; then
+          echo "✅ Main API endpoint (98.81.93.132:7777) is responding"
+          API_STATUS="healthy"
+        else
+          echo "❌ Main API endpoint (98.81.93.132:7777) is not responding"
+          API_STATUS="down"
+        fi
+        
+        # Test backup API endpoint
+        if curl -f -s --max-time 10 http://54.175.94.45:7777/health; then
+          echo "✅ Backup API endpoint (54.175.94.45:7777) is responding"
+          BACKUP_API_STATUS="healthy"
+        else
+          echo "❌ Backup API endpoint (54.175.94.45:7777) is not responding"
+          BACKUP_API_STATUS="down"
+        fi
+        
+        # Create summary
+        echo "## API Connectivity Check" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Check Date:** $(date)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Endpoint | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| http://98.81.93.132:7777 | $API_STATUS |" >> $GITHUB_STEP_SUMMARY
+        echo "| http://54.175.94.45:7777 | $BACKUP_API_STATUS |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "$API_STATUS" = "healthy" ] || [ "$BACKUP_API_STATUS" = "healthy" ]; then
+          echo "✅ At least one API endpoint is functional" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ All API endpoints are down - deployment needed" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+
+  notify-results:
+    needs: [vf-dev-dashboard-tests, api-connectivity-check]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Notify Results
+      run: |
+        echo "📊 VF-Dev Nightly Test Results Summary"
+        echo "Dashboard Tests: ${{ needs.vf-dev-dashboard-tests.result }}"
+        echo "API Connectivity: ${{ needs.api-connectivity-check.result }}"
+        
+        if [ "${{ needs.vf-dev-dashboard-tests.result }}" = "success" ] && [ "${{ needs.api-connectivity-check.result }}" = "success" ]; then
+          echo "🎉 All VF-Dev tests passed successfully!"
+        else
+          echo "⚠️ VF-Dev tests detected issues that need attention"
+        fi
