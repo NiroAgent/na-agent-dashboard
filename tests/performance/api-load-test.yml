@@ -1,0 +1,36 @@
+config:
+  target: '{{ $processEnvironment.API_ENDPOINT || "http://localhost:7778" }}'
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      name: "Warm up"
+    - duration: 120
+      arrivalRate: 10
+      name: "Sustained load"
+    - duration: 60
+      arrivalRate: 20
+      name: "Peak load"
+  processor: "./performance-helpers.js"
+
+scenarios:
+  - name: "Agent API Load Test"
+    weight: 100
+    flow:
+      - get:
+          url: "/health"
+          capture:
+            - json: "$.agents_discovered"
+              as: "agent_count"
+      - think: 2
+      - get:
+          url: "/api/agents"
+          capture:
+            - json: "$[0].id"
+              as: "first_agent_id"
+      - think: 1
+      - loop:
+          - get:
+              url: "/api/agents"
+          count: 3
+          over: "agent_batch"
+      - function: "validateAgentData"

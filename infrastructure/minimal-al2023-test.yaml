@@ -1,0 +1,133 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Minimal AL2023 Test - Just Node.js health check'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    
+Resources:
+  # Simple VPC setup
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: test-vpc
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: test-subnet
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  # Security group
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow HTTP and SSH
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+  # EC2 Instance
+  TestInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0a19bcec6d2ec60fb  # AL2023
+      InstanceType: t3.micro  # Slightly larger for reliability
+      SubnetId: !Ref PublicSubnet
+      SecurityGroupIds:
+        - !Ref SecurityGroup
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          exec > >(tee /var/log/user-data.log)
+          exec 2>&1
+          echo "Starting Node.js test setup..."
+          
+          # Update and install Node.js
+          dnf update -y
+          dnf install -y nodejs npm
+          
+          # Verify versions
+          echo "Node.js: $(node --version)"
+          echo "NPM: $(npm --version)"
+          
+          # Create simple server
+          cat > /tmp/server.js << 'EOF'
+          const http = require('http');
+          const server = http.createServer((req, res) => {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              status: 'healthy',
+              node_version: process.version,
+              timestamp: new Date().toISOString()
+            }));
+          });
+          server.listen(3000, '0.0.0.0', () => {
+            console.log('Server running on port 3000');
+          });
+          EOF
+          
+          # Start server as background process
+          nohup node /tmp/server.js > /tmp/server.log 2>&1 &
+          
+          echo "Node.js server started on port 3000"
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-al2023-test'
+
+Outputs:
+  InstanceId:
+    Value: !Ref TestInstance
+  PublicIp:
+    Value: !GetAtt TestInstance.PublicIp
+  TestEndpoint:
+    Value: !Sub 'http://${TestInstance.PublicIp}:3000'

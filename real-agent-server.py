@@ -28,10 +28,10 @@ except ImportError:
     CORS = None
     FLASK_AVAILABLE = False
 
-# Real agent discovery paths
+# Real agent discovery paths (Windows compatible)
 AGENT_PATHS = [
-    '/home/ssurles/Projects/NiroAgent/na-business-service/ai-agent-deployment',
-    '/home/ssurles/Projects/NiroAgent/na-autonomous-system/src/agents'
+    r'E:\Projects\NiroAgent\na-business-service',
+    r'E:\Projects\NiroAgent\na-autonomous-system'
 ]
 
 class RealAgentDiscovery:
@@ -78,7 +78,7 @@ class RealAgentDiscovery:
         
         self.agents = discovered
         self.last_scan = datetime.now()
-        print(f"✅ Discovered {len(self.agents)} real agents from filesystem")
+        print(f"Found {len(self.agents)} real agents from filesystem")
         
         return self.agents
     
@@ -336,14 +336,14 @@ class SimpleHTTPHandler(http.server.BaseHTTPRequestHandler):
         pass
 
 if __name__ == '__main__':
-    print("🔍 Starting Real Agent Discovery Server...")
-    print(f"📍 Port: 7778 (Real Agents)")
-    print(f"📁 Scanning paths: {AGENT_PATHS}")
-    print("🚀 Server starting...")
+    print("Starting Real Agent Discovery Server...")
+    print(f"Port: 7778 (Real Agents)")
+    print(f"Scanning paths: {AGENT_PATHS}")
+    print("Server starting...")
     
     if FLASK_AVAILABLE:
         app.run(host='0.0.0.0', port=7778, debug=False)
     else:
-        print("📦 Using simple HTTP server (Flask not available)")
+        print("Using simple HTTP server (Flask not available)")
         with socketserver.TCPServer(("0.0.0.0", 7778), SimpleHTTPHandler) as httpd:
             httpd.serve_forever()

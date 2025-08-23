@@ -1,0 +1,254 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AL2023 with Node.js 22 LTS from NodeSource'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+    
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    AllowedValues: [t3.micro, t3.small, t3.medium]
+    
+  ApiPort:
+    Type: Number
+    Default: 7778
+    Description: Port for real agent API
+
+Resources:
+  # VPC and Networking (reusing from previous template)
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-niro-vpc'
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-niro-subnet'
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  # Security Group
+  ApiSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Node.js API
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !Ref ApiPort
+          ToPort: !Ref ApiPort
+          CidrIp: 0.0.0.0/0
+          Description: API access
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: SSH access
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+  # IAM Role for SSM access
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref InstanceRole
+
+  # EC2 Instance with Node.js 22
+  ApiInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0a19bcec6d2ec60fb  # AL2023
+      InstanceType: !Ref InstanceType
+      SubnetId: !Ref PublicSubnet
+      SecurityGroupIds:
+        - !Ref ApiSecurityGroup
+      IamInstanceProfile: !Ref InstanceProfile
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-niro-api-node22'
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: NodeVersion
+          Value: "22-LTS"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          exec > >(tee /var/log/user-data.log)
+          exec 2>&1
+          
+          echo "🚀 Starting AL2023 + Node.js 22 setup..."
+          
+          # Update system
+          dnf update -y
+          
+          # Install curl and basic tools
+          dnf install -y curl wget git
+          
+          # Install Node.js 22 from NodeSource
+          echo "📦 Installing Node.js 22 LTS from NodeSource..."
+          curl -fsSL https://rpm.nodesource.com/setup_22.x | bash -
+          dnf install -y nodejs
+          
+          # Verify versions
+          echo "✅ Node.js: $(node --version)"
+          echo "✅ NPM: $(npm --version)"
+          
+          # Install PM2 globally
+          npm install -g pm2@latest
+          echo "✅ PM2: $(pm2 --version)"
+          
+          # Create application directory
+          mkdir -p /opt/niro-agent-api
+          chown ec2-user:ec2-user /opt/niro-agent-api
+          
+          # Create TypeScript-ready health server
+          cat > /opt/niro-agent-api/server.js << 'EOF'
+          const http = require('http');
+          const path = require('path');
+          const port = ${ApiPort};
+          
+          const server = http.createServer((req, res) => {
+            // CORS headers
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+            res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+            
+            if (req.method === 'OPTIONS') {
+              res.writeHead(200);
+              res.end();
+              return;
+            }
+            
+            if (req.url === '/health') {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                status: 'healthy',
+                node_version: process.version,
+                timestamp: new Date().toISOString(),
+                environment: '${Environment}',
+                port: port,
+                instance_type: '${InstanceType}',
+                ready_for_typescript: true
+              }));
+            } else if (req.url === '/api/agents') {
+              // Mock response for testing
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                agents: [],
+                total: 0,
+                message: 'Node.js 22 ready for TypeScript API deployment'
+              }));
+            } else {
+              res.writeHead(404, { 'Content-Type': 'text/plain' });
+              res.end('Not Found');
+            }
+          });
+          
+          server.listen(port, '0.0.0.0', () => {
+            console.log('🌟 Node.js ' + process.version + ' server ready on port ' + port);
+            console.log('🔗 Health: http://localhost:' + port + '/health');
+            console.log('🔗 API: http://localhost:' + port + '/api/agents');
+          });
+          EOF
+          
+          # Set ownership
+          chown ec2-user:ec2-user /opt/niro-agent-api/server.js
+          
+          # Start with PM2
+          su - ec2-user -c "cd /opt/niro-agent-api && pm2 start server.js --name niro-api"
+          su - ec2-user -c "pm2 startup systemd && pm2 save"
+          
+          # Enable PM2 startup
+          env PATH=$PATH:/usr/bin pm2 startup systemd -u ec2-user --hp /home/ec2-user
+          
+          echo "✅ Node.js 22 LTS setup complete - Ready for TypeScript deployment!"
+
+Outputs:
+  InstanceId:
+    Description: Instance ID
+    Value: !Ref ApiInstance
+    Export:
+      Name: !Sub '${AWS::StackName}-InstanceId'
+      
+  PublicIp:
+    Description: Public IP Address
+    Value: !GetAtt ApiInstance.PublicIp
+    Export:
+      Name: !Sub '${AWS::StackName}-PublicIp'
+      
+  HealthEndpoint:
+    Description: Health Check URL
+    Value: !Sub 'http://${ApiInstance.PublicIp}:${ApiPort}/health'
+    Export:
+      Name: !Sub '${AWS::StackName}-HealthEndpoint'
+      
+  ApiEndpoint:
+    Description: API Endpoint URL
+    Value: !Sub 'http://${ApiInstance.PublicIp}:${ApiPort}/api/agents'
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiEndpoint'
+      
+  SSMCommand:
+    Description: Connect via SSM
+    Value: !Sub 'aws ssm start-session --target ${ApiInstance}'
+    
+  NodeJSVersion:
+    Description: Node.js version
+    Value: "22-LTS from NodeSource"

@@ -1,0 +1,269 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Simple Niro Agent Dashboard Infrastructure - AL2023 with Node.js 22'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+    Description: Deployment environment
+    
+  InstanceType:
+    Type: String
+    Default: t3.nano
+    AllowedValues: [t3.nano, t3.micro, t3.small, t3.medium, t3.large]
+    Description: EC2 instance type for cost optimization
+    
+  ApiPort:
+    Type: Number
+    Default: 7777
+    Description: Port for the API server
+    
+  KeyPairName:
+    Type: String
+    Default: ""
+    Description: Optional EC2 Key Pair for SSH access
+
+Conditions:
+  HasKeyPair: !Not [!Equals [!Ref KeyPairName, ""]]
+
+Mappings:
+  RegionMap:
+    us-east-1:
+      AL2023: ami-0a19bcec6d2ec60fb  # Latest AL2023
+    us-west-2:
+      AL2023: ami-0a19bcec6d2ec60fb  # Update with correct AMI
+
+Resources:
+  # VPC and Networking
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-niro-dashboard-vpc'
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-niro-dashboard-public-subnet'
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-niro-dashboard-igw'
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-niro-dashboard-public-rt'
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  # Security Group
+  ApiSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Niro Agent Dashboard API
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !Ref ApiPort
+          ToPort: !Ref ApiPort
+          CidrIp: 0.0.0.0/0
+          Description: API access
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: SSH access
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: All outbound traffic
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-niro-dashboard-api-sg'
+
+  # IAM Role for EC2
+  ApiInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  ApiInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref ApiInstanceRole
+
+  # EC2 Instance
+  ApiInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !FindInMap [RegionMap, !Ref 'AWS::Region', AL2023]
+      InstanceType: !Ref InstanceType
+      KeyName: !If [HasKeyPair, !Ref KeyPairName, !Ref 'AWS::NoValue']
+      SubnetId: !Ref PublicSubnet
+      SecurityGroupIds:
+        - !Ref ApiSecurityGroup
+      IamInstanceProfile: !Ref ApiInstanceProfile
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-niro-dashboard-api'
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: NodeJSVersion
+          Value: "22-LTS"
+        - Key: OS
+          Value: "Amazon-Linux-2023"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          
+          # Log all output
+          exec > >(tee /var/log/user-data.log)
+          exec 2>&1
+          
+          echo "🚀 Starting AL2023 setup with Node.js 22..."
+
+          # Update system
+          dnf update -y
+
+          # Install Node.js 22 (AL2023 should have this by default)
+          dnf install -y --allowerasing nodejs npm git curl wget
+
+          # Verify Node.js version
+          echo "Node.js version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+
+          # Install PM2 globally for process management
+          npm install -g pm2@latest
+
+          # Create application directory
+          mkdir -p /opt/niro-agent-dashboard-api
+          chown ec2-user:ec2-user /opt/niro-agent-dashboard-api
+
+          # Skip CloudWatch agent for nano instance due to disk space
+          # dnf install -y amazon-cloudwatch-agent
+          
+          # Configure PM2 to start on boot
+          su - ec2-user -c "pm2 startup systemd"
+          
+          # Install SSM Agent (pre-installed on AL2023 but ensure it's running)
+          systemctl enable amazon-ssm-agent
+          systemctl start amazon-ssm-agent
+
+          # Create a simple health check endpoint for testing
+          cat > /opt/niro-agent-dashboard-api/health-server.js << 'EOF'
+          const http = require('http');
+          const port = process.env.API_PORT || ${ApiPort};
+          
+          const server = http.createServer((req, res) => {
+            if (req.url === '/health') {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                status: 'healthy',
+                timestamp: new Date().toISOString(),
+                node_version: process.version,
+                environment: '${Environment}',
+                instance_type: '${InstanceType}'
+              }));
+            } else {
+              res.writeHead(404, { 'Content-Type': 'text/plain' });
+              res.end('Not Found');
+            }
+          });
+          
+          server.listen(port, '0.0.0.0', () => {
+            console.log('Health server running on port ' + port);
+          });
+          EOF
+          
+          # Start health server with PM2
+          chown ec2-user:ec2-user /opt/niro-agent-dashboard-api/health-server.js
+          su - ec2-user -c "cd /opt/niro-agent-dashboard-api && pm2 start health-server.js --name health-api"
+          su - ec2-user -c "pm2 save"
+
+          echo "✅ AL2023 setup complete - Node.js $(node --version) ready"
+
+Outputs:
+  ApiInstanceId:
+    Description: API Server Instance ID
+    Value: !Ref ApiInstance
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiInstanceId'
+
+  ApiInstancePublicIp:
+    Description: API Server Public IP
+    Value: !GetAtt ApiInstance.PublicIp
+    Export:
+      Name: !Sub '${AWS::StackName}-PublicIp'
+
+  ApiEndpoint:
+    Description: API Health Endpoint
+    Value: !Sub 'http://${ApiInstance.PublicIp}:${ApiPort}/health'
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiEndpoint'
+
+  SSHCommand:
+    Description: SSH command to connect to instance
+    Value: !If
+      - HasKeyPair
+      - !Sub 'ssh -i ${KeyPairName}.pem ec2-user@${ApiInstance.PublicIp}'
+      - 'SSH not available (no key pair specified)'
+
+  Environment:
+    Description: Deployment environment
+    Value: !Ref Environment
+    Export:
+      Name: !Sub '${AWS::StackName}-Environment'
+
+  NodeJSInfo:
+    Description: Node.js version and OS
+    Value: "Node.js 22-LTS on Amazon Linux 2023"

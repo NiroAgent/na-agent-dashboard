@@ -13,13 +13,13 @@ const getApiBaseUrl = () => {
   const hostname = window.location.hostname;
   
   if (hostname.includes('niro-agent-dashboard-dev') || hostname.includes('s3-website')) {
-    // Production environment - use the EC2 instance IP
-    // This should be the actual API endpoint for vf-dev
-    return 'http://98.81.93.132:7777';
+    // Production environment - use the EC2 instance IP with real agent port
+    // Port 7778 serves real agents discovered from filesystem
+    return 'http://98.81.93.132:7778';
   }
   
-  // Local development fallback
-  return 'http://localhost:7777';
+  // Local development - use real agent server
+  return 'http://localhost:7778';
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -41,7 +41,7 @@ export const useLiveAgents = (): UseLiveAgentsReturn => {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`${API_BASE_URL}/agents`);
+      const response = await fetch(`${API_BASE_URL}/api/dashboard/agents`);
       if (!response.ok) {
         throw new Error(`API Error: ${response.status}`);
       }

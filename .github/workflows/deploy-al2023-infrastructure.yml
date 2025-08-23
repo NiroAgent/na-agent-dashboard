@@ -1,0 +1,340 @@
+name: Deploy AL2023 Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment Environment'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+      instance_type:
+        description: 'EC2 Instance Type'
+        required: true
+        default: 't3.nano'
+        type: choice
+        options:
+          - t3.nano
+          - t3.micro
+          - t3.small
+          - t3.medium
+          - t3.large
+      use_spot:
+        description: 'Use Spot Instances'
+        required: true
+        default: true
+        type: boolean
+      spot_max_price:
+        description: 'Max Spot Price (USD/hour)'
+        required: false
+        default: '0.002'
+
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'infrastructure/**'
+      - '.github/workflows/deploy-al2023-infrastructure.yml'
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  validate-template:
+    runs-on: ubuntu-latest
+    outputs:
+      template-valid: ${{ steps.validate.outputs.valid }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Validate CloudFormation template
+        id: validate
+        run: |
+          aws cloudformation validate-template \
+            --template-body file://infrastructure/al2023-dashboard-infrastructure.yaml
+          echo "valid=true" >> $GITHUB_OUTPUT
+
+  deploy-dev:
+    if: |
+      (github.ref == 'refs/heads/develop' || github.event_name == 'workflow_dispatch') &&
+      needs.validate-template.outputs.template-valid == 'true'
+    runs-on: ubuntu-latest
+    needs: validate-template
+    environment: 
+      name: development
+      url: ${{ steps.deploy.outputs.website-url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set environment variables
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "ENVIRONMENT=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
+            echo "INSTANCE_TYPE=${{ github.event.inputs.instance_type }}" >> $GITHUB_ENV
+            echo "USE_SPOT=${{ github.event.inputs.use_spot }}" >> $GITHUB_ENV
+            echo "SPOT_MAX_PRICE=${{ github.event.inputs.spot_max_price }}" >> $GITHUB_ENV
+          else
+            echo "ENVIRONMENT=dev" >> $GITHUB_ENV
+            echo "INSTANCE_TYPE=t3.nano" >> $GITHUB_ENV
+            echo "USE_SPOT=true" >> $GITHUB_ENV
+            echo "SPOT_MAX_PRICE=0.002" >> $GITHUB_ENV
+          fi
+
+      - name: Deploy CloudFormation stack
+        id: deploy
+        run: |
+          STACK_NAME="${ENVIRONMENT}-niro-agent-dashboard-al2023"
+          
+          # Check if stack exists
+          if aws cloudformation describe-stacks --stack-name $STACK_NAME >/dev/null 2>&1; then
+            ACTION="update-stack"
+            echo "Updating existing stack: $STACK_NAME"
+          else
+            ACTION="create-stack"
+            echo "Creating new stack: $STACK_NAME"
+          fi
+          
+          # Deploy stack
+          aws cloudformation $ACTION \
+            --stack-name $STACK_NAME \
+            --template-body file://infrastructure/al2023-dashboard-infrastructure.yaml \
+            --parameters \
+              ParameterKey=Environment,ParameterValue=$ENVIRONMENT \
+              ParameterKey=InstanceType,ParameterValue=$INSTANCE_TYPE \
+              ParameterKey=UseSpotInstance,ParameterValue=$USE_SPOT \
+              ParameterKey=SpotMaxPrice,ParameterValue=$SPOT_MAX_PRICE \
+            --capabilities CAPABILITY_IAM \
+            --tags \
+              Key=Project,Value=NiroAgentDashboard \
+              Key=Environment,Value=$ENVIRONMENT \
+              Key=DeployedBy,Value=GitHubActions \
+              Key=Repository,Value=${{ github.repository }} \
+              Key=Commit,Value=${{ github.sha }}
+
+          # Wait for completion
+          echo "Waiting for stack operation to complete..."
+          aws cloudformation wait stack-${ACTION/create-stack/create-complete} --stack-name $STACK_NAME
+          aws cloudformation wait stack-${ACTION/update-stack/update-complete} --stack-name $STACK_NAME 2>/dev/null || true
+
+          # Get outputs
+          WEBSITE_URL=$(aws cloudformation describe-stacks \
+            --stack-name $STACK_NAME \
+            --query 'Stacks[0].Outputs[?OutputKey==`WebsiteURL`].OutputValue' \
+            --output text)
+          
+          API_ENDPOINT=$(aws cloudformation describe-stacks \
+            --stack-name $STACK_NAME \
+            --query 'Stacks[0].Outputs[?OutputKey==`ApiEndpoint`].OutputValue' \
+            --output text)
+          
+          echo "website-url=$WEBSITE_URL" >> $GITHUB_OUTPUT
+          echo "api-endpoint=$API_ENDPOINT" >> $GITHUB_OUTPUT
+          
+          echo "🚀 Deployment successful!"
+          echo "Website URL: $WEBSITE_URL"
+          echo "API Endpoint: $API_ENDPOINT"
+
+      - name: Test deployment
+        run: |
+          API_ENDPOINT="${{ steps.deploy.outputs.api-endpoint }}"
+          echo "Testing API health check..."
+          
+          # Wait for instance to be ready (up to 5 minutes)
+          for i in {1..30}; do
+            if curl -s --connect-timeout 5 "$API_ENDPOINT/health" >/dev/null 2>&1; then
+              echo "✅ API is responding"
+              break
+            else
+              echo "Attempt $i: API not ready yet, waiting 10s..."
+              sleep 10
+            fi
+          done
+
+      - name: Update GitHub deployment status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: deployment } = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: '${{ env.ENVIRONMENT }}',
+              description: 'AL2023 Infrastructure Deployment',
+              auto_merge: false,
+              required_contexts: []
+            });
+            
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deployment.id,
+              state: '${{ job.status }}' === 'success' ? 'success' : 'failure',
+              description: '${{ job.status }}' === 'success' ? 'Deployment successful' : 'Deployment failed',
+              environment_url: '${{ steps.deploy.outputs.website-url }}'
+            });
+
+  deploy-staging:
+    if: github.ref == 'refs/heads/main' && needs.validate-template.outputs.template-valid == 'true'
+    runs-on: ubuntu-latest
+    needs: validate-template
+    environment: 
+      name: staging
+      url: ${{ steps.deploy.outputs.website-url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy to staging
+        id: deploy
+        run: |
+          STACK_NAME="staging-niro-agent-dashboard-al2023"
+          
+          # Deploy with slightly larger instance for staging
+          if aws cloudformation describe-stacks --stack-name $STACK_NAME >/dev/null 2>&1; then
+            ACTION="update-stack"
+          else
+            ACTION="create-stack"
+          fi
+          
+          aws cloudformation $ACTION \
+            --stack-name $STACK_NAME \
+            --template-body file://infrastructure/al2023-dashboard-infrastructure.yaml \
+            --parameters \
+              ParameterKey=Environment,ParameterValue=staging \
+              ParameterKey=InstanceType,ParameterValue=t3.micro \
+              ParameterKey=UseSpotInstance,ParameterValue=true \
+              ParameterKey=SpotMaxPrice,ParameterValue=0.005 \
+            --capabilities CAPABILITY_IAM \
+            --tags \
+              Key=Project,Value=NiroAgentDashboard \
+              Key=Environment,Value=staging \
+              Key=DeployedBy,Value=GitHubActions
+          
+          # Wait and get outputs
+          aws cloudformation wait stack-${ACTION/create-stack/create-complete} --stack-name $STACK_NAME
+          aws cloudformation wait stack-${ACTION/update-stack/update-complete} --stack-name $STACK_NAME 2>/dev/null || true
+          
+          WEBSITE_URL=$(aws cloudformation describe-stacks \
+            --stack-name $STACK_NAME \
+            --query 'Stacks[0].Outputs[?OutputKey==`WebsiteURL`].OutputValue' \
+            --output text)
+          
+          echo "website-url=$WEBSITE_URL" >> $GITHUB_OUTPUT
+
+  deploy-production:
+    if: |
+      github.event_name == 'workflow_dispatch' && 
+      github.event.inputs.environment == 'prod' && 
+      needs.validate-template.outputs.template-valid == 'true'
+    runs-on: ubuntu-latest
+    needs: validate-template
+    environment: 
+      name: production
+      url: ${{ steps.deploy.outputs.website-url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy to production
+        id: deploy
+        run: |
+          STACK_NAME="prod-niro-agent-dashboard-al2023"
+          
+          # Production uses larger instance and on-demand for reliability
+          if aws cloudformation describe-stacks --stack-name $STACK_NAME >/dev/null 2>&1; then
+            ACTION="update-stack"
+          else
+            ACTION="create-stack"
+          fi
+          
+          aws cloudformation $ACTION \
+            --stack-name $STACK_NAME \
+            --template-body file://infrastructure/al2023-dashboard-infrastructure.yaml \
+            --parameters \
+              ParameterKey=Environment,ParameterValue=prod \
+              ParameterKey=InstanceType,ParameterValue=t3.medium \
+              ParameterKey=UseSpotInstance,ParameterValue=false \
+            --capabilities CAPABILITY_IAM \
+            --tags \
+              Key=Project,Value=NiroAgentDashboard \
+              Key=Environment,Value=prod \
+              Key=DeployedBy,Value=GitHubActions
+          
+          # Wait and get outputs
+          aws cloudformation wait stack-${ACTION/create-stack/create-complete} --stack-name $STACK_NAME
+          aws cloudformation wait stack-${ACTION/update-stack/update-complete} --stack-name $STACK_NAME 2>/dev/null || true
+          
+          WEBSITE_URL=$(aws cloudformation describe-stacks \
+            --stack-name $STACK_NAME \
+            --query 'Stacks[0].Outputs[?OutputKey==`WebsiteURL`].OutputValue' \
+            --output text)
+          
+          echo "website-url=$WEBSITE_URL" >> $GITHUB_OUTPUT
+
+  cleanup-old-resources:
+    if: always() && (needs.deploy-dev.result == 'success' || needs.deploy-staging.result == 'success')
+    runs-on: ubuntu-latest
+    needs: [deploy-dev, deploy-staging]
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Cleanup old AL2 instances
+        run: |
+          echo "🧹 Cleaning up old Amazon Linux 2 instances..."
+          
+          # Find and terminate old instances tagged with the old stack
+          OLD_INSTANCES=$(aws ec2 describe-instances \
+            --filters \
+              "Name=tag:Name,Values=vf-dev-niro-dashboard-api" \
+              "Name=instance-state-name,Values=running" \
+            --query 'Reservations[].Instances[].InstanceId' \
+            --output text)
+          
+          if [ -n "$OLD_INSTANCES" ] && [ "$OLD_INSTANCES" != "None" ]; then
+            echo "Found old instances to terminate: $OLD_INSTANCES"
+            aws ec2 terminate-instances --instance-ids $OLD_INSTANCES
+            echo "✅ Terminated old instances"
+          else
+            echo "No old instances found to cleanup"
+          fi

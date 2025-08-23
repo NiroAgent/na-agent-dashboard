@@ -1,0 +1,542 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Niro Agent Dashboard Infrastructure - Modern AL2023 with Node.js 22 LTS'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+    Description: Deployment environment
+    
+  InstanceType:
+    Type: String
+    Default: t3.nano
+    AllowedValues: [t3.nano, t3.micro, t3.small, t3.medium, t3.large, t3.xlarge, t4g.nano, t4g.micro, t4g.small, t4g.medium, t4g.large, t4g.xlarge]
+    Description: EC2 instance type for the API server (t3.nano cheapest for testing)
+    
+  UseSpotInstance:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: Use spot instances for cost savings (up to 90% cheaper)
+    
+  SpotMaxPrice:
+    Type: String
+    Default: "0.002"
+    Description: Maximum hourly price for spot instances (USD) - t3.nano spot ~$0.0017/hr
+    
+  ApiPort:
+    Type: Number
+    Default: 7777
+    Description: Port for the API server
+    
+  DomainName:
+    Type: String
+    Default: ""
+    Description: Optional custom domain name for CloudFront
+    
+  CertificateArn:
+    Type: String
+    Default: ""
+    Description: SSL certificate ARN for custom domain
+
+  KeyPairName:
+    Type: String
+    Default: ""
+    Description: Optional EC2 Key Pair for SSH access
+
+Conditions:
+  HasCustomDomain: !Not [!Equals [!Ref DomainName, ""]]
+  HasCertificate: !Not [!Equals [!Ref CertificateArn, ""]]
+  HasKeyPair: !Not [!Equals [!Ref KeyPairName, ""]]
+  UseSpot: !Equals [!Ref UseSpotInstance, "true"]
+
+Mappings:
+  # Latest Amazon Linux 2023 AMIs by region
+  RegionMap:
+    us-east-1:
+      AL2023: ami-0a19bcec6d2ec60fb
+    us-west-2:
+      AL2023: ami-0a70476e631caa6d3
+    eu-west-1:
+      AL2023: ami-0c9c942bd7bf113a2
+    ap-southeast-1:
+      AL2023: ami-0c3189395e5b39df7
+
+Resources:
+  # VPC and Networking
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-niro-dashboard-vpc'
+        - Key: Environment
+          Value: !Ref Environment
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-niro-dashboard-public-subnet'
+        - Key: Environment
+          Value: !Ref Environment
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-niro-dashboard-igw'
+        - Key: Environment
+          Value: !Ref Environment
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-niro-dashboard-public-rt'
+        - Key: Environment
+          Value: !Ref Environment
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  # Security Group
+  ApiSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Niro Agent Dashboard API
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !Ref ApiPort
+          ToPort: !Ref ApiPort
+          CidrIp: 0.0.0.0/0
+          Description: API access
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: HTTP access
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS access
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: SSH access (restrict in production)
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: All outbound traffic
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-niro-dashboard-api-sg'
+        - Key: Environment
+          Value: !Ref Environment
+
+  # IAM Role for EC2 Instance
+  ApiInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+      Policies:
+        - PolicyName: S3AccessForDeployments
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub '${FrontendBucket}/*'
+                  - !Ref FrontendBucket
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  ApiInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref ApiInstanceRole
+
+  # IAM Role for Spot Fleet (only created if using spot instances)
+  SpotFleetRole:
+    Type: AWS::IAM::Role
+    Condition: UseSpot
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: spotfleet.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Launch Template for Spot Instances
+  ApiLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub '${Environment}-niro-dashboard-api-template'
+      LaunchTemplateData:
+        ImageId: !FindInMap [RegionMap, !Ref 'AWS::Region', AL2023]
+        InstanceType: !Ref InstanceType
+        KeyName: !If [HasKeyPair, !Ref KeyPairName, !Ref 'AWS::NoValue']
+        SecurityGroupIds:
+          - !Ref ApiSecurityGroup
+        IamInstanceProfile:
+          Arn: !GetAtt ApiInstanceProfile.Arn
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: !Sub '${Environment}-niro-dashboard-api'
+              - Key: Environment
+                Value: !Ref Environment
+              - Key: NodeJSVersion
+                Value: "22-LTS"
+              - Key: OS
+                Value: "Amazon-Linux-2023"
+              - Key: InstanceType
+                Value: "Spot"
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            set -e
+            
+            # Update system
+            dnf update -y
+            
+            # Install essential packages
+            dnf install -y git curl wget tar gzip nodejs npm
+            
+            # Verify Node.js version
+            echo "Node.js version: $(node --version)"
+            echo "NPM version: $(npm --version)"
+            
+            # Install PM2 globally
+            npm install -g pm2@latest
+            
+            # Install and start CloudWatch agent
+            dnf install -y amazon-cloudwatch-agent
+            
+            # Create application directory
+            mkdir -p /opt/niro-agent-dashboard-api
+            chown ec2-user:ec2-user /opt/niro-agent-dashboard-api
+            
+            # Configure PM2 startup
+            pm2 startup systemd -u ec2-user --hp /home/ec2-user
+            
+            # Install SSM Agent (should be pre-installed on AL2023)
+            dnf install -y amazon-ssm-agent
+            systemctl enable amazon-ssm-agent
+            systemctl start amazon-ssm-agent
+            
+            # Signal successful completion
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ApiInstance --region ${AWS::Region}
+            
+            echo "✅ Amazon Linux 2023 with Node.js ready for deployment"
+
+  # EC2 Instance (On-Demand or Spot based on parameter)
+  ApiInstance:
+    Type: !If
+      - UseSpot
+      - AWS::EC2::SpotFleet
+      - AWS::EC2::Instance
+    Properties: !If
+      - UseSpot
+      - SpotFleetRequestConfig:
+          IamFleetRole: !GetAtt SpotFleetRole.Arn
+          AllocationStrategy: lowestPrice
+          TargetCapacity: 1
+          SpotPrice: !Ref SpotMaxPrice
+          LaunchTemplateConfigs:
+            - LaunchTemplateSpecification:
+                LaunchTemplateId: !Ref ApiLaunchTemplate
+                Version: $Latest
+              Overrides:
+                - InstanceType: !Ref InstanceType
+                  SubnetId: !Ref PublicSubnet
+          ReplaceUnhealthyInstances: true
+          TerminateInstancesWithExpiration: true
+      - ImageId: !FindInMap [RegionMap, !Ref 'AWS::Region', AL2023]
+        InstanceType: !Ref InstanceType
+        KeyName: !If [HasKeyPair, !Ref KeyPairName, !Ref 'AWS::NoValue']
+        SubnetId: !Ref PublicSubnet
+        SecurityGroupIds:
+          - !Ref ApiSecurityGroup
+        IamInstanceProfile: !Ref ApiInstanceProfile
+        Tags:
+          - Key: Name
+            Value: !Sub '${Environment}-niro-dashboard-api'
+          - Key: Environment
+            Value: !Ref Environment
+          - Key: NodeJSVersion
+            Value: "22-LTS"
+          - Key: OS
+            Value: "Amazon-Linux-2023"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          
+          # Update system
+          dnf update -y
+          
+          # Install essential packages
+          dnf install -y git curl wget tar gzip nodejs npm
+          
+          # Verify Node.js version
+          echo "Node.js version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          
+          # Install PM2 globally
+          npm install -g pm2@latest
+          
+          # Install and start CloudWatch agent
+          dnf install -y amazon-cloudwatch-agent
+          
+          # Create application directory
+          mkdir -p /opt/niro-agent-dashboard-api
+          chown ec2-user:ec2-user /opt/niro-agent-dashboard-api
+          
+          # Configure PM2 startup
+          pm2 startup systemd -u ec2-user --hp /home/ec2-user
+          
+          # Install SSM Agent (should be pre-installed on AL2023)
+          dnf install -y amazon-ssm-agent
+          systemctl enable amazon-ssm-agent
+          systemctl start amazon-ssm-agent
+          
+          # Signal successful completion
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ApiInstance --region ${AWS::Region}
+          
+          echo "✅ Amazon Linux 2023 with Node.js ready for deployment"
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-niro-dashboard-api'
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: NodeJSVersion
+          Value: "22-LTS"
+        - Key: OS
+          Value: "Amazon-Linux-2023"
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT10M
+        Count: 1
+
+  # S3 Bucket for Frontend
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'niro-agent-dashboard-${Environment}-${AWS::AccountId}'
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [GET, HEAD]
+            AllowedOrigins: ['*']
+            MaxAge: 3600
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: NiroAgentDashboard
+        - Key: Component
+          Value: Frontend
+
+  # S3 Bucket Policy for CloudFront OAC Access
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Statement:
+          - Sid: AllowCloudFrontServicePrincipal
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${FrontendBucket}/*'
+            Condition:
+              StringEquals:
+                'AWS:SourceArn': !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}'
+
+  # CloudFront Origin Access Control
+  CloudFrontOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub 'OAC for ${Environment} Niro Agent Dashboard'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+        Description: !Sub 'Origin Access Control for ${Environment} Niro Agent Dashboard'
+
+  # CloudFront Distribution
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Aliases: !If [HasCustomDomain, [!Ref DomainName], !Ref 'AWS::NoValue']
+        ViewerCertificate: !If
+          - HasCertificate
+          - AcmCertificateArn: !Ref CertificateArn
+            SslSupportMethod: sni-only
+            MinimumProtocolVersion: TLSv1.2_2021
+          - CloudFrontDefaultCertificate: true
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+            OriginAccessControlId: !Ref CloudFrontOAC
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+          Compress: true
+          DefaultTTL: 86400
+          MaxTTL: 31536000
+        Enabled: true
+        DefaultRootObject: index.html
+        CustomErrorResponses:
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+        PriceClass: PriceClass_100
+        Tags:
+          - Key: Environment
+            Value: !Ref Environment
+          - Key: Project
+            Value: NiroAgentDashboard
+
+Outputs:
+  FrontendBucketName:
+    Description: Name of the S3 bucket for frontend
+    Value: !Ref FrontendBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-FrontendBucket'
+
+  CloudFrontDistributionId:
+    Description: CloudFront Distribution ID
+    Value: !Ref CloudFrontDistribution
+    Export:
+      Name: !Sub '${AWS::StackName}-CloudFrontDistribution'
+
+  CloudFrontDomainName:
+    Description: CloudFront Distribution Domain Name
+    Value: !GetAtt CloudFrontDistribution.DomainName
+    Export:
+      Name: !Sub '${AWS::StackName}-CloudFrontDomain'
+
+  WebsiteURL:
+    Description: Website URL
+    Value: !If
+      - HasCustomDomain
+      - !Sub 'https://${DomainName}'
+      - !Sub 'https://${CloudFrontDistribution.DomainName}'
+    Export:
+      Name: !Sub '${AWS::StackName}-WebsiteURL'
+
+  ApiEndpoint:
+    Description: API Endpoint URL
+    Value: !Sub 'http://${ApiInstance.PublicIp}:${ApiPort}'
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiEndpoint'
+
+  ApiInstanceId:
+    Description: API Server Instance ID
+    Value: !Ref ApiInstance
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiInstanceId'
+
+  ApiInstancePublicIp:
+    Description: API Server Public IP
+    Value: !GetAtt ApiInstance.PublicIp
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiInstancePublicIp'
+
+  SecurityGroupId:
+    Description: Security Group ID for API access
+    Value: !Ref ApiSecurityGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-SecurityGroupId'
+
+  Environment:
+    Description: Deployment environment
+    Value: !Ref Environment
+    Export:
+      Name: !Sub '${AWS::StackName}-Environment'
+
+  NodeJSVersion:
+    Description: Node.js version installed
+    Value: "22-LTS (Amazon Linux 2023)"
+    Export:
+      Name: !Sub '${AWS::StackName}-NodeJSVersion'
