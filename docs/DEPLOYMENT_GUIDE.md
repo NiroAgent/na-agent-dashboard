@@ -25,7 +25,7 @@ This will:
 
 **Test URLs:**
 - Frontend: http://localhost:3000
-- API: http://localhost:7777
+- API: http://localhost:7778
 - **Production Simulation**: http://localhost/agents/dashboard
 - API through proxy: http://localhost/api
 

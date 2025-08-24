@@ -123,8 +123,8 @@ Resources:
           CidrIp: 0.0.0.0/0
           Description: Real Agent API access
         - IpProtocol: tcp
-          FromPort: 7777
-          ToPort: 7777
+          Fromport: 7778
+          Toport: 7778
           CidrIp: 0.0.0.0/0
           Description: Legacy API access (temporary)
       SecurityGroupEgress:

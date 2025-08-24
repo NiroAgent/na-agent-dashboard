@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('VF-Dev Live Dashboard Tests', () => {
   const DASHBOARD_URL = 'http://niro-agent-dashboard-dev-816454053517.s3-website-us-east-1.amazonaws.com/';
-  const API_URL = 'http://98.81.93.132:7777';
+  const API_URL = 'http://localhost:7778';
 
   test('should load vf-dev dashboard without network errors', async ({ page }) => {
     console.log('Testing vf-dev dashboard for network errors...');
@@ -30,7 +30,7 @@ test.describe('VF-Dev Live Dashboard Tests', () => {
     // Track API requests
     page.on('request', request => {
       const url = request.url();
-      if (url.includes('98.81.93.132') || url.includes(':7777')) {
+      if (url.includes('54.156.68.236') || url.includes(':7777')) {
         apiRequests.push(`${request.method()} ${url}`);
         console.log(`API request: ${request.method()} ${url}`);
       }
@@ -121,7 +121,7 @@ test.describe('VF-Dev Live Dashboard Tests', () => {
     // Intercept API responses
     page.on('response', async (response) => {
       const url = response.url();
-      if (url.includes('98.81.93.132') || url.includes(':7777')) {
+      if (url.includes('54.156.68.236') || url.includes(':7777')) {
         console.log(`API response intercepted: ${response.status()} ${url}`);
         apiResponseReceived = true;
         

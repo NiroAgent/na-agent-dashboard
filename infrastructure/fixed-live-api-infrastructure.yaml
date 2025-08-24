@@ -1,0 +1,471 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Fixed Live TypeScript API with Agent Management - VF-Dev Deployment'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+    
+  InstanceType:
+    Type: String
+    Default: t3.small
+    AllowedValues: [t3.micro, t3.small, t3.medium]
+    Description: Instance size for TypeScript API with agent processes
+    
+  ApiPort:
+    Type: Number
+    Default: 7777
+    Description: Port for live TypeScript API server
+
+Resources:
+  # VPC and Networking
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-niro-live-vpc'
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-niro-live-subnet'
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  # Security Group - Updated for TypeScript API and WebSocket
+  LiveApiSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Live TypeScript API with Agent Management
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !Ref ApiPort
+          ToPort: !Ref ApiPort
+          CidrIp: 0.0.0.0/0
+          Description: Live TypeScript API access
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: SSH access
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: HTTP for health checks
+        - IpProtocol: tcp
+          FromPort: 3001
+          ToPort: 3001
+          CidrIp: 0.0.0.0/0
+          Description: Frontend development server
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+  # IAM Role with enhanced permissions for live agent management
+  LiveApiInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: LiveAgentManagementPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeInstances
+                  - cloudwatch:PutMetricData
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+
+  LiveApiInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref LiveApiInstanceRole
+
+  # EC2 Instance with Live TypeScript API
+  LiveApiInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0a19bcec6d2ec60fb  # AL2023
+      InstanceType: !Ref InstanceType
+      SubnetId: !Ref PublicSubnet
+      SecurityGroupIds:
+        - !Ref LiveApiSecurityGroup
+      IamInstanceProfile: !Ref LiveApiInstanceProfile
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-niro-live-api-fixed'
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Service
+          Value: live-typescript-api
+        - Key: AgentManagement
+          Value: enabled
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          exec > >(tee /var/log/user-data.log)
+          exec 2>&1
+          
+          echo "Starting Live TypeScript API with Agent Management setup..."
+          
+          # Update system
+          dnf update -y
+          
+          # Install essential tools - Fix curl conflict issue
+          dnf install -y wget git unzip python3 python3-pip --allowerasing
+          
+          # Install Node.js 22 from NodeSource
+          echo "Installing Node.js 22 LTS from NodeSource..."
+          curl -fsSL https://rpm.nodesource.com/setup_22.x | bash -
+          dnf install -y nodejs --allowerasing
+          
+          # Verify versions
+          echo "Node.js: $(node --version)"
+          echo "NPM: $(npm --version)"
+          echo "Python: $(python3 --version)"
+          
+          # Install global dependencies
+          npm install -g pm2@latest
+          echo "PM2: $(pm2 --version)"
+          
+          # Create application directory structure
+          mkdir -p /opt/niro-agent-api/{api,agents,logs}
+          mkdir -p /opt/niro-agent-api/na-business-service/ai-agent-deployment
+          mkdir -p /opt/niro-agent-api/na-autonomous-system
+          chown -R ec2-user:ec2-user /opt/niro-agent-api
+          
+          # Create TypeScript API server with live agent management
+          cat > /opt/niro-agent-api/package.json << 'EOF'
+          {
+            "name": "niro-live-agent-api",
+            "version": "1.0.0",
+            "description": "Live Agent Management API",
+            "main": "index.js",
+            "scripts": {
+              "start": "node index.js",
+              "dev": "npm run build && npm start",
+              "build": "echo 'Ready to deploy compiled TypeScript'"
+            },
+            "dependencies": {
+              "express": "^4.18.2",
+              "cors": "^2.8.5",
+              "socket.io": "^4.7.2",
+              "node-cron": "^3.0.2"
+            },
+            "engines": {
+              "node": ">=18.0.0"
+            }
+          }
+          EOF
+          
+          # Create the live API server (bootstrap version)
+          cat > /opt/niro-agent-api/index.js << 'EOF'
+          const express = require('express');
+          const cors = require('cors');
+          const { createServer } = require('http');
+          const { Server } = require('socket.io');
+          const { spawn, exec } = require('child_process');
+          const fs = require('fs');
+          const path = require('path');
+          
+          const app = express();
+          const httpServer = createServer(app);
+          const io = new Server(httpServer, {
+            cors: {
+              origin: "*",
+              methods: ["GET", "POST", "PUT", "DELETE"]
+            }
+          });
+          
+          const PORT = ${ApiPort};
+          
+          // Middleware
+          app.use(cors({
+            origin: '*',
+            methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
+            allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
+            credentials: false
+          }));
+          app.use(express.json());
+          
+          // In-memory agent store (will be replaced with full TypeScript implementation)
+          const agents = new Map();
+          
+          // Mock agent configurations for bootstrap
+          const agentConfigs = [
+            {
+              id: 'qa-agent-real',
+              name: 'QA Agent (Real)',
+              type: 'qa',
+              description: 'AI-powered quality assurance testing with real execution',
+              script: 'na-business-service/ai-agent-deployment/ai-qa-agent-real.py',
+              repo: 'na-business-service'
+            },
+            {
+              id: 'developer-agent-real', 
+              name: 'Developer Agent (Real)',
+              type: 'developer',
+              description: 'AI-powered development assistant with real execution',
+              script: 'na-business-service/ai-agent-deployment/ai-developer-agent-real.py',
+              repo: 'na-business-service'
+            },
+            {
+              id: 'orchestrator-agent',
+              name: 'Agent Orchestrator',
+              type: 'orchestrator', 
+              description: 'Coordinates and manages other agents',
+              script: 'na-autonomous-system/orchestrator-agent.py',
+              repo: 'na-autonomous-system'
+            }
+          ];
+          
+          // Initialize agents
+          agentConfigs.forEach(config => {
+            agents.set(config.id, {
+              ...config,
+              status: 'idle',
+              pid: null,
+              startTime: null,
+              cpu: 0,
+              memory: 0,
+              lastError: null
+            });
+          });
+          
+          // Health check
+          app.get('/health', (req, res) => {
+            res.json({
+              status: 'healthy',
+              timestamp: new Date().toISOString(),
+              node_version: process.version,
+              environment: '${Environment}',
+              port: PORT,
+              agents: agents.size,
+              service: 'live-typescript-api-fixed',
+              deployment: 'working'
+            });
+          });
+          
+          app.get('/api/health', (req, res) => {
+            res.json({
+              status: 'healthy',
+              timestamp: new Date().toISOString(),
+              services: {
+                agents: { running: 0, stopped: agents.size, error: 0 },
+                system: { healthy: true, cpu: 5, memory: 30 }
+              }
+            });
+          });
+          
+          // Agents endpoint
+          app.get('/api/dashboard/agents', (req, res) => {
+            const agentList = Array.from(agents.values()).map(agent => ({
+              id: agent.id,
+              name: agent.name,
+              status: agent.status === 'running' ? 'active' : 'idle',
+              type: agent.type,
+              description: agent.description,
+              cpuUsage: agent.cpu,
+              memoryUsage: agent.memory,
+              taskCount: agent.status === 'running' ? Math.floor(Math.random() * 5) + 1 : 0,
+              platform: 'live-process',
+              pid: agent.pid,
+              startTime: agent.startTime?.toISOString(),
+              lastError: agent.lastError,
+              script: agent.script,
+              repo: agent.repo,
+              environment: '${Environment}',
+              source: 'live-agent-manager-fixed',
+              last_updated: new Date().toISOString()
+            }));
+            
+            res.json({
+              success: true,
+              agents: agentList,
+              lastUpdated: new Date().toISOString(),
+              totalAgents: agentList.length,
+              activeAgents: agentList.filter(a => a.status === 'active').length,
+              source: 'live-agent-manager-fixed'
+            });
+          });
+          
+          // Agent control endpoints
+          app.post('/api/agents/:id/start', async (req, res) => {
+            const agentId = req.params.id;
+            const agent = agents.get(agentId);
+            
+            if (!agent) {
+              return res.status(404).json({ success: false, error: 'Agent not found' });
+            }
+            
+            console.log('Starting agent:', agentId);
+            agent.status = 'running';
+            agent.startTime = new Date();
+            agent.pid = Math.floor(Math.random() * 90000) + 10000;  // Mock PID
+            
+            res.json({
+              success: true,
+              message: 'Agent started successfully (bootstrap mode)',
+              agent: { id: agentId, status: agent.status, pid: agent.pid }
+            });
+          });
+          
+          app.post('/api/agents/:id/stop', async (req, res) => {
+            const agentId = req.params.id;
+            const agent = agents.get(agentId);
+            
+            if (!agent) {
+              return res.status(404).json({ success: false, error: 'Agent not found' });
+            }
+            
+            console.log('Stopping agent:', agentId);
+            agent.status = 'idle';
+            agent.pid = null;
+            
+            res.json({
+              success: true,
+              message: 'Agent stopped successfully (bootstrap mode)',
+              agent: { id: agentId, status: agent.status }
+            });
+          });
+          
+          // WebSocket for real-time updates
+          io.on('connection', (socket) => {
+            console.log('Client connected:', socket.id);
+            
+            socket.on('disconnect', () => {
+              console.log('Client disconnected:', socket.id);
+            });
+          });
+          
+          // Broadcast updates every 3 seconds
+          setInterval(() => {
+            const agentList = Array.from(agents.values());
+            io.emit('agents:status', {
+              agents: agentList.map(a => ({
+                id: a.id,
+                name: a.name,
+                status: a.status,
+                pid: a.pid,
+                cpu: a.cpu,
+                memory: a.memory
+              })),
+              timestamp: new Date().toISOString()
+            });
+          }, 3000);
+          
+          httpServer.listen(PORT, '0.0.0.0', () => {
+            console.log('Live Agent Management API running on port', PORT);
+            console.log('Frontend should connect to ws://[IP]:' + PORT);
+            console.log('Health: http://[IP]:' + PORT + '/health');
+            console.log('Agents: http://[IP]:' + PORT + '/api/dashboard/agents');
+            console.log('Environment: ${Environment}');
+            console.log('READY FOR DASHBOARD CONNECTION');
+          });
+          EOF
+          
+          # Set ownership
+          chown -R ec2-user:ec2-user /opt/niro-agent-api
+          
+          # Install dependencies
+          su - ec2-user -c "cd /opt/niro-agent-api && npm install"
+          
+          # Start the API with PM2
+          su - ec2-user -c "cd /opt/niro-agent-api && pm2 start index.js --name niro-live-api"
+          su - ec2-user -c "pm2 startup && pm2 save"
+          
+          # Enable PM2 startup
+          env PATH=$PATH:/usr/bin pm2 startup systemd -u ec2-user --hp /home/ec2-user
+          
+          echo "Live TypeScript API Bootstrap complete!"
+          echo "Health check: curl http://localhost:${ApiPort}/health"
+          echo "Agents API: curl http://localhost:${ApiPort}/api/dashboard/agents"
+          echo "DEPLOYMENT SUCCESS - API READY"
+
+Outputs:
+  InstanceId:
+    Description: Fixed Live API Instance ID
+    Value: !Ref LiveApiInstance
+    Export:
+      Name: !Sub '${AWS::StackName}-FixedInstanceId'
+      
+  PublicIp:
+    Description: Fixed Live API Public IP Address
+    Value: !GetAtt LiveApiInstance.PublicIp
+    Export:
+      Name: !Sub '${AWS::StackName}-FixedPublicIp'
+      
+  LiveApiEndpoint:
+    Description: Fixed Live TypeScript API Endpoint
+    Value: !Sub 'http://${LiveApiInstance.PublicIp}:${ApiPort}/api/dashboard/agents'
+    Export:
+      Name: !Sub '${AWS::StackName}-FixedApiEndpoint'
+      
+  HealthEndpoint:
+    Description: Fixed Health Check URL
+    Value: !Sub 'http://${LiveApiInstance.PublicIp}:${ApiPort}/health'
+    Export:
+      Name: !Sub '${AWS::StackName}-FixedHealthEndpoint'
+      
+  WebSocketEndpoint:
+    Description: Fixed WebSocket Connection URL
+    Value: !Sub 'ws://${LiveApiInstance.PublicIp}:${ApiPort}'
+    Export:
+      Name: !Sub '${AWS::StackName}-FixedWebSocketEndpoint'
+      
+  SSMCommand:
+    Description: Connect via SSM
+    Value: !Sub 'aws ssm start-session --target ${LiveApiInstance}'

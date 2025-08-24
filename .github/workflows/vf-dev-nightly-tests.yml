@@ -79,20 +79,20 @@ jobs:
         echo "🔍 Checking API endpoint connectivity..."
         
         # Test main API endpoint
-        if curl -f -s --max-time 10 http://98.81.93.132:7777/health; then
-          echo "✅ Main API endpoint (98.81.93.132:7777) is responding"
+        if curl -f -s --max-time 10 http://localhost:7778/health; then
+          echo "✅ Main API endpoint (54.156.68.236:7777) is responding"
           API_STATUS="healthy"
         else
-          echo "❌ Main API endpoint (98.81.93.132:7777) is not responding"
+          echo "❌ Main API endpoint (54.156.68.236:7777) is not responding"
           API_STATUS="down"
         fi
         
-        # Test backup API endpoint
-        if curl -f -s --max-time 10 http://54.175.94.45:7777/health; then
-          echo "✅ Backup API endpoint (54.175.94.45:7777) is responding"
+        # Test backup API endpoint (if available)
+        if curl -f -s --max-time 10 http://localhost:7778/health; then
+          echo "✅ Backup API endpoint (52.5.23.235:7777) is responding"
           BACKUP_API_STATUS="healthy"
         else
-          echo "❌ Backup API endpoint (54.175.94.45:7777) is not responding"
+          echo "❌ Backup API endpoint (52.5.23.235:7777) is not responding"
           BACKUP_API_STATUS="down"
         fi
         
@@ -103,8 +103,8 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "| Endpoint | Status |" >> $GITHUB_STEP_SUMMARY
         echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
-        echo "| http://98.81.93.132:7777 | $API_STATUS |" >> $GITHUB_STEP_SUMMARY
-        echo "| http://54.175.94.45:7777 | $BACKUP_API_STATUS |" >> $GITHUB_STEP_SUMMARY
+        echo "| http://localhost:7778 | $API_STATUS |" >> $GITHUB_STEP_SUMMARY
+        echo "| http://localhost:7778 | $BACKUP_API_STATUS |" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
         if [ "$API_STATUS" = "healthy" ] || [ "$BACKUP_API_STATUS" = "healthy" ]; then

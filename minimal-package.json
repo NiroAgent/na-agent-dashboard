@@ -2,9 +2,9 @@
   "name": "niro-live-agent-api-minimal",
   "version": "1.0.0",
   "description": "Minimal Live Agent Management API",
-  "main": "minimal-server.js",
+  "main": "real-agent-server.py",
   "scripts": {
-    "start": "node minimal-server.js"
+    "start": "node real-agent-server.py"
   },
   "dependencies": {
     "express": "^4.18.2",

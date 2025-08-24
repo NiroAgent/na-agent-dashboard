@@ -1,9 +1,13 @@
 import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
+import axios from 'axios';
 
 const readdir = promisify(fs.readdir);
 const stat = promisify(fs.stat);
+
+// Configuration for the working real agent server
+const REAL_AGENT_SERVER_URL = 'http://localhost:7778';
 
 export interface RealAgent {
   id: string;
@@ -75,6 +79,23 @@ export class RealAgentDiscovery {
   }
 
   async discoverAgents(): Promise<RealAgent[]> {
+    try {
+      // Try to fetch from the working real agent server first
+      const response = await axios.get(`${REAL_AGENT_SERVER_URL}/api/agents`, { 
+        timeout: 5000 
+      });
+      
+      if (response.data && Array.isArray(response.data)) {
+        this.agents = response.data;
+        this.lastScan = new Date();
+        console.log(`✅ Discovered ${this.agents.length} real agents from real agent server (port 7778)`);
+        return this.agents;
+      }
+    } catch (error) {
+      console.warn('Failed to connect to real agent server, falling back to filesystem discovery:', error);
+    }
+
+    // Fallback to filesystem discovery if server is not available
     const discovered: RealAgent[] = [];
     let agentId = 1;
 
@@ -87,7 +108,7 @@ export class RealAgentDiscovery {
 
     this.agents = discovered;
     this.lastScan = new Date();
-    console.log(`✅ Discovered ${this.agents.length} real agents from filesystem`);
+    console.log(`✅ Discovered ${this.agents.length} real agents from filesystem (fallback)`);
     
     return this.agents;
   }

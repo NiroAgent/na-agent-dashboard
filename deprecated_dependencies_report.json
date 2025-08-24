@@ -1,0 +1,1558 @@
+{
+  "files_scanned": 130,
+  "deprecated_references": [
+    {
+      "type": "deprecated_pattern",
+      "file": "CLAUDE.md",
+      "line": 45,
+      "content": "- **Backend**: http://localhost:7778 (serves mocked data)",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_file_reference",
+      "file": "minimal-package.json",
+      "line": 5,
+      "content": "\"main\": \"real-agent-server.py\",",
+      "deprecated_item": "real-agent-server.py"
+    },
+    {
+      "type": "deprecated_file_reference",
+      "file": "minimal-package.json",
+      "line": 7,
+      "content": "\"start\": \"node real-agent-server.py\"",
+      "deprecated_item": "real-agent-server.py"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "minimal-package.json",
+      "line": 5,
+      "content": "\"main\": \"real-agent-server.py\",",
+      "deprecated_item": "minimal-server\\.js",
+      "match": "real-agent-server.py"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "minimal-package.json",
+      "line": 7,
+      "content": "\"start\": \"node real-agent-server.py\"",
+      "deprecated_item": "minimal-server\\.js",
+      "match": "real-agent-server.py"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "playwright.config.ts",
+      "line": 26,
+      "content": "port: 7778,",
+      "deprecated_item": "PORT\\s*[=:]\\s*7777",
+      "match": "port: 7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "playwright.config.ts",
+      "line": 26,
+      "content": "port: 7778,",
+      "deprecated_item": "port\\s*[=:]\\s*7777",
+      "match": "port: 7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "test-deployed-dashboard.spec.ts",
+      "line": 5,
+      "content": "const PRODUCTION_API_7777 = 'http://localhost:7778';",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": ".github\\workflows\\deploy-application.yml",
+      "line": 207,
+      "content": "\"port: 7778\",",
+      "deprecated_item": "PORT\\s*[=:]\\s*7777",
+      "match": "port: 7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": ".github\\workflows\\deploy-application.yml",
+      "line": 223,
+      "content": "\"      port: 7778\",",
+      "deprecated_item": "PORT\\s*[=:]\\s*7777",
+      "match": "port: 7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": ".github\\workflows\\deploy-application.yml",
+      "line": 207,
+      "content": "\"port: 7778\",",
+      "deprecated_item": "port\\s*[=:]\\s*7777",
+      "match": "port: 7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": ".github\\workflows\\deploy-application.yml",
+      "line": 223,
+      "content": "\"      port: 7778\",",
+      "deprecated_item": "port\\s*[=:]\\s*7777",
+      "match": "port: 7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": ".github\\workflows\\deploy-application.yml",
+      "line": 256,
+      "content": "\"if ! curl -f http://localhost:7778/health; then\",",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": ".github\\workflows\\deploy-application.yml",
+      "line": 262,
+      "content": "\"RESPONSE=$(curl -s -I http://localhost:7778/health | grep Server || echo 'No server header')\",",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": ".github\\workflows\\deploy-application.yml",
+      "line": 269,
+      "content": "\"if ! curl -f -X OPTIONS http://localhost:7778/agents >/dev/null 2>&1; then\",",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": ".github\\workflows\\deploy-application.yml",
+      "line": 275,
+      "content": "\"AGENTS_RESPONSE=$(curl -s http://localhost:7778/agents)\",",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": ".github\\workflows\\deploy-application.yml",
+      "line": 256,
+      "content": "\"if ! curl -f http://localhost:7778/health; then\",",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": ".github\\workflows\\deploy-application.yml",
+      "line": 262,
+      "content": "\"RESPONSE=$(curl -s -I http://localhost:7778/health | grep Server || echo 'No server header')\",",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": ".github\\workflows\\deploy-application.yml",
+      "line": 269,
+      "content": "\"if ! curl -f -X OPTIONS http://localhost:7778/agents >/dev/null 2>&1; then\",",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": ".github\\workflows\\deploy-application.yml",
+      "line": 275,
+      "content": "\"AGENTS_RESPONSE=$(curl -s http://localhost:7778/agents)\",",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": ".github\\workflows\\vf-dev-nightly-tests.yml",
+      "line": 82,
+      "content": "if curl -f -s --max-time 10 http://localhost:7778/health; then",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": ".github\\workflows\\vf-dev-nightly-tests.yml",
+      "line": 91,
+      "content": "if curl -f -s --max-time 10 http://localhost:7778/health; then",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": ".github\\workflows\\vf-dev-nightly-tests.yml",
+      "line": 106,
+      "content": "echo \"| http://localhost:7778 | $API_STATUS |\" >> $GITHUB_STEP_SUMMARY",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": ".github\\workflows\\vf-dev-nightly-tests.yml",
+      "line": 107,
+      "content": "echo \"| http://localhost:7778 | $BACKUP_API_STATUS |\" >> $GITHUB_STEP_SUMMARY",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "api\\api-dashboard-extension.js",
+      "line": 14,
+      "content": "const BASE_API_URL = 'http://localhost:7778';",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "api\\src\\index.ts",
+      "line": 134,
+      "content": "port: 7778",
+      "deprecated_item": "PORT\\s*[=:]\\s*7777",
+      "match": "port: 7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "api\\src\\index.ts",
+      "line": 134,
+      "content": "port: 7778",
+      "deprecated_item": "port\\s*[=:]\\s*7777",
+      "match": "port: 7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "config\\docker-compose.local.yml",
+      "line": 15,
+      "content": "- port: 7778",
+      "deprecated_item": "PORT\\s*[=:]\\s*7777",
+      "match": "port: 7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "config\\docker-compose.local.yml",
+      "line": 15,
+      "content": "- port: 7778",
+      "deprecated_item": "port\\s*[=:]\\s*7777",
+      "match": "port: 7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "config\\docker-compose.local.yml",
+      "line": 42,
+      "content": "test: [\"CMD\", \"curl\", \"-f\", \"http://localhost:7778/health\"]",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "config\\docker-compose.local.yml",
+      "line": 57,
+      "content": "- VITE_API_URL=http://localhost:7778",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "config\\docker-compose.local.yml",
+      "line": 58,
+      "content": "- VITE_WS_URL=ws://localhost:7778",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "config\\docker-compose.local.yml",
+      "line": 42,
+      "content": "test: [\"CMD\", \"curl\", \"-f\", \"http://localhost:7778/health\"]",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "config\\docker-compose.local.yml",
+      "line": 57,
+      "content": "- VITE_API_URL=http://localhost:7778",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "config\\docker-compose.local.yml",
+      "line": 96,
+      "content": "- API_URL=http://api:7777",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://api:7777"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "docs\\DEPLOYMENT_GUIDE.md",
+      "line": 28,
+      "content": "- API: http://localhost:7778",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "docs\\DEPLOYMENT_GUIDE.md",
+      "line": 28,
+      "content": "- API: http://localhost:7778",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "docs\\FINAL_DEPLOYMENT_VALIDATION.md",
+      "line": 13,
+      "content": "- URL: http://localhost:7778",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "docs\\FINAL_DEPLOYMENT_VALIDATION.md",
+      "line": 62,
+      "content": "curl http://localhost:7778/health",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "docs\\FINAL_DEPLOYMENT_VALIDATION.md",
+      "line": 65,
+      "content": "curl http://localhost:7778/api/agents | wc -c",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "docs\\FINAL_DEPLOYMENT_VALIDATION.md",
+      "line": 78,
+      "content": "http://localhost:7778/api/agents",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "docs\\FINAL_DEPLOYMENT_VALIDATION.md",
+      "line": 142,
+      "content": "- **API Health**: http://localhost:7778/health",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "docs\\FINAL_DEPLOYMENT_VALIDATION.md",
+      "line": 143,
+      "content": "- **Agent Data**: http://localhost:7778/api/agents",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "docs\\GITHUB_ACTIONS_SETUP.md",
+      "line": 173,
+      "content": "curl http://localhost:7778/health",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "docs\\REAL_DATA_VERIFICATION.md",
+      "line": 6,
+      "content": "**Endpoint**: `http://localhost:7778/api/agents`",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "docs\\REAL_DATA_VERIFICATION.md",
+      "line": 46,
+      "content": "- Frontend correctly configured to fetch from `http://localhost:7778`",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "docs\\REAL_DATA_VERIFICATION.md",
+      "line": 104,
+      "content": "curl http://localhost:7778/api/agents",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "docs\\REAL_DATA_VERIFICATION.md",
+      "line": 110,
+      "content": "curl -s http://localhost:7778/api/agents | grep -o 'active\\|idle\\|busy' | sort | uniq -c",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "docs\\TESTING_STATUS_REPORT.md",
+      "line": 27,
+      "content": "curl http://localhost:7778/api/dashboard/agents",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "docs\\TESTING_STATUS_REPORT.md",
+      "line": 31,
+      "content": "curl http://localhost:7778/api/agents",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "docs\\VF-DEV_DEPLOYMENT_COMPLETE.md",
+      "line": 12,
+      "content": "- **URL**: http://localhost:7778",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "docs\\VF-DEV_DEPLOYMENT_COMPLETE.md",
+      "line": 72,
+      "content": "curl http://localhost:7778/api/agents",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "docs\\VF-DEV_DEPLOYMENT_COMPLETE.md",
+      "line": 75,
+      "content": "curl http://localhost:7778/health",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "docs\\VF-DEV_DEPLOYMENT_COMPLETE.md",
+      "line": 88,
+      "content": "http://localhost:7778/api/agents",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "docs\\VF-DEV_DEPLOYMENT_COMPLETE.md",
+      "line": 126,
+      "content": "- **API Health**: http://localhost:7778/health",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "docs\\VF-DEV_DEPLOYMENT_COMPLETE.md",
+      "line": 127,
+      "content": "- **Agent Data**: http://localhost:7778/api/agents",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "infrastructure\\spot-instance-infrastructure.yaml",
+      "line": 126,
+      "content": "Fromport: 7778",
+      "deprecated_item": "PORT\\s*[=:]\\s*7777",
+      "match": "port: 7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "infrastructure\\spot-instance-infrastructure.yaml",
+      "line": 127,
+      "content": "Toport: 7778",
+      "deprecated_item": "PORT\\s*[=:]\\s*7777",
+      "match": "port: 7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "infrastructure\\spot-instance-infrastructure.yaml",
+      "line": 126,
+      "content": "Fromport: 7778",
+      "deprecated_item": "port\\s*[=:]\\s*7777",
+      "match": "port: 7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "infrastructure\\spot-instance-infrastructure.yaml",
+      "line": 127,
+      "content": "Toport: 7778",
+      "deprecated_item": "port\\s*[=:]\\s*7777",
+      "match": "port: 7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "mfe\\vite.config.ts",
+      "line": 12,
+      "content": "target: 'http://localhost:7778',",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "mfe\\vite.config.ts",
+      "line": 12,
+      "content": "target: 'http://localhost:7778',",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "mfe\\src\\hooks\\useExternalData.ts",
+      "line": 28,
+      "content": "const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:7778';",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "mfe\\src\\hooks\\useExternalData.ts",
+      "line": 28,
+      "content": "const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:7778';",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "mfe\\src\\hooks\\useLiveAgents.ts",
+      "line": 21,
+      "content": "return 'http://localhost:7778';",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "mfe\\src\\hooks\\useLiveAgents.ts",
+      "line": 17,
+      "content": "return 'http://localhost:7778';",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "mfe\\src\\hooks\\useLiveAgents.ts",
+      "line": 21,
+      "content": "return 'http://localhost:7778';",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "mfe\\src\\hooks\\useSocket.ts",
+      "line": 5,
+      "content": "const SOCKET_URL = (import.meta as any).env?.VITE_SOCKET_URL || 'http://localhost:7778';",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "mfe\\src\\hooks\\useSocket.ts",
+      "line": 5,
+      "content": "const SOCKET_URL = (import.meta as any).env?.VITE_SOCKET_URL || 'http://localhost:7778';",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_file_reference",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 42,
+      "content": "\"real-agent-server.py\",",
+      "deprecated_item": "real-agent-server.py"
+    },
+    {
+      "type": "deprecated_file_reference",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 32,
+      "content": "\"minimal-test.js\",",
+      "deprecated_item": "minimal-test.js"
+    },
+    {
+      "type": "deprecated_file_reference",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 43,
+      "content": "\"real-agent-server.py\",",
+      "deprecated_item": "real-agent-server.py"
+    },
+    {
+      "type": "deprecated_file_reference",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 41,
+      "content": "\"real-agent-server.py\",",
+      "deprecated_item": "real-agent-server.py"
+    },
+    {
+      "type": "deprecated_file_reference",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 33,
+      "content": "\"simple-test.js\",",
+      "deprecated_item": "simple-test.js"
+    },
+    {
+      "type": "deprecated_file_reference",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 30,
+      "content": "\"simple-server.js\",",
+      "deprecated_item": "simple-server.js"
+    },
+    {
+      "type": "deprecated_file_reference",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 36,
+      "content": "\"real-agent-server.js\"",
+      "deprecated_item": "real-agent-server.js"
+    },
+    {
+      "type": "deprecated_file_reference",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 31,
+      "content": "\"debug-server.js\",",
+      "deprecated_item": "debug-server.js"
+    },
+    {
+      "type": "deprecated_file_reference",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 34,
+      "content": "\"working-server.js\",",
+      "deprecated_item": "working-server.js"
+    },
+    {
+      "type": "deprecated_file_reference",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 44,
+      "content": "\"real-agent-server.py\"",
+      "deprecated_item": "real-agent-server.py"
+    },
+    {
+      "type": "deprecated_file_reference",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 51,
+      "content": "\"minimal-al2023-test.yaml\",",
+      "deprecated_item": "minimal-al2023-test.yaml"
+    },
+    {
+      "type": "deprecated_file_reference",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 52,
+      "content": "\"simple-al2023-infrastructure.yaml\"",
+      "deprecated_item": "simple-al2023-infrastructure.yaml"
+    },
+    {
+      "type": "deprecated_file_reference",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 49,
+      "content": "\"DEPRECATED - use real-agent-server.py\",",
+      "deprecated_item": "DEPRECATED - use real-agent-server.py"
+    },
+    {
+      "type": "deprecated_file_reference",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 35,
+      "content": "\"live-server.js\",",
+      "deprecated_item": "live-server.js"
+    },
+    {
+      "type": "deprecated_file_reference",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 50,
+      "content": "\"DEPRECATED - use real-agent-server.py\",",
+      "deprecated_item": "DEPRECATED - use real-agent-server.py"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 49,
+      "content": "\"DEPRECATED - use real-agent-server.py\",",
+      "deprecated_item": "fix-vf-dev-api\\.yaml",
+      "match": "DEPRECATED - use real-agent-server.py"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 66,
+      "content": "r\"servers/debug-server\",",
+      "deprecated_item": "servers/debug-server",
+      "match": "servers/debug-server"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 68,
+      "content": "r\"servers/working-server\",",
+      "deprecated_item": "servers/working-server",
+      "match": "servers/working-server"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 43,
+      "content": "\"real-agent-server.py\",",
+      "deprecated_item": "live-agent-api\\.js",
+      "match": "real-agent-server.py"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 61,
+      "content": "r\"localhost:7778\",  # Mocked service port",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 64,
+      "content": "r\"http://.*:7777\",",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://.*:7777"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 50,
+      "content": "\"DEPRECATED - use real-agent-server.py\",",
+      "deprecated_item": "simple-infrastructure\\.yaml",
+      "match": "DEPRECATED - use real-agent-server.py"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 41,
+      "content": "\"real-agent-server.py\",",
+      "deprecated_item": "minimal-server\\.js",
+      "match": "real-agent-server.py"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 65,
+      "content": "r\"servers/simple-server\",",
+      "deprecated_item": "servers/simple-server",
+      "match": "servers/simple-server"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 67,
+      "content": "r\"servers/minimal-test\",",
+      "deprecated_item": "servers/minimal-test",
+      "match": "servers/minimal-test"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 69,
+      "content": "r\"servers/live-server\",",
+      "deprecated_item": "servers/live-server",
+      "match": "servers/live-server"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "scripts\\check-deprecated-dependencies.py",
+      "line": 42,
+      "content": "\"real-agent-server.py\",",
+      "deprecated_item": "proxy-server\\.js",
+      "match": "real-agent-server.py"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\dashboard.spec.ts",
+      "line": 5,
+      "content": "const API_URL = 'http://localhost:7778';",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\ec2-production-test.spec.ts",
+      "line": 4,
+      "content": "const EC2_API = 'http://localhost:7778';",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 10,
+      "content": "const apiHealth = await request.get('http://localhost:7778/health');",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 40,
+      "content": "const response = await request.get(`http://localhost:7778${endpoint}`);",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 54,
+      "content": "if (request.url().includes('localhost:7778')) {",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 137,
+      "content": "const response = await request.post('http://localhost:7778/api/dashboard/agents/demo-developer-1/message', {",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 161,
+      "content": "const historyResponse = await request.get('http://localhost:7778/api/dashboard/agents/demo-developer-1/conversation');",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 185,
+      "content": "const response = await request.post('http://localhost:7778/api/dashboard/agents/demo-architect-1/task', {",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 205,
+      "content": "const stats1 = await request.get('http://localhost:7778/api/dashboard/stats');",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 211,
+      "content": "await request.post('http://localhost:7778/api/dashboard/agents/demo-qa-1/task', {",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 222,
+      "content": "const stats2 = await request.get('http://localhost:7778/api/dashboard/stats');",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 241,
+      "content": "request.post(`http://localhost:7778/api/dashboard/agents/${agentId}/message`, {",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 269,
+      "content": "const response = await request.post('http://localhost:7778/api/dashboard/agents/invalid-agent-id/message', {",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 342,
+      "content": "const directAPICall = await request.get('http://localhost:7778/api/dashboard/agents');",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 354,
+      "content": "const secondCall = await request.get('http://localhost:7778/api/dashboard/agents');",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 10,
+      "content": "const apiHealth = await request.get('http://localhost:7778/health');",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 40,
+      "content": "const response = await request.get(`http://localhost:7778${endpoint}`);",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 137,
+      "content": "const response = await request.post('http://localhost:7778/api/dashboard/agents/demo-developer-1/message', {",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 161,
+      "content": "const historyResponse = await request.get('http://localhost:7778/api/dashboard/agents/demo-developer-1/conversation');",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 185,
+      "content": "const response = await request.post('http://localhost:7778/api/dashboard/agents/demo-architect-1/task', {",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 205,
+      "content": "const stats1 = await request.get('http://localhost:7778/api/dashboard/stats');",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 211,
+      "content": "await request.post('http://localhost:7778/api/dashboard/agents/demo-qa-1/task', {",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 222,
+      "content": "const stats2 = await request.get('http://localhost:7778/api/dashboard/stats');",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 241,
+      "content": "request.post(`http://localhost:7778/api/dashboard/agents/${agentId}/message`, {",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 269,
+      "content": "const response = await request.post('http://localhost:7778/api/dashboard/agents/invalid-agent-id/message', {",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 342,
+      "content": "const directAPICall = await request.get('http://localhost:7778/api/dashboard/agents');",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\live-services.spec.ts",
+      "line": 354,
+      "content": "const secondCall = await request.get('http://localhost:7778/api/dashboard/agents');",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\local-typescript-test.spec.ts",
+      "line": 4,
+      "content": "const LOCAL_API = 'http://localhost:7778';",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\local-typescript-test.spec.ts",
+      "line": 31,
+      "content": "if (response.url().includes('localhost:7778')) {",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\local-typescript-test.spec.ts",
+      "line": 4,
+      "content": "const LOCAL_API = 'http://localhost:7778';",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\multiple-agents.spec.ts",
+      "line": 14,
+      "content": "const healthResponse = await request.get('http://localhost:7778/health');",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\multiple-agents.spec.ts",
+      "line": 21,
+      "content": "const agentsResponse = await request.get('http://localhost:7778/api/dashboard/agents');",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\multiple-agents.spec.ts",
+      "line": 32,
+      "content": "const agentResponse = await request.get(`http://localhost:7778/api/dashboard/agents/${agentId}`);",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\multiple-agents.spec.ts",
+      "line": 38,
+      "content": "const createResponse = await request.post('http://localhost:7778/api/dashboard/agents', {",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\multiple-agents.spec.ts",
+      "line": 80,
+      "content": "const response = await request.post(`http://localhost:7778/api/dashboard/agents/${agentId}/task`, {",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\multiple-agents.spec.ts",
+      "line": 151,
+      "content": "const response = await request.post(`http://localhost:7778/api/dashboard/agents/${agentId}/message`, {",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\multiple-agents.spec.ts",
+      "line": 219,
+      "content": "const response = await request.post(`http://localhost:7778/api/dashboard/agents/${agentId}/task`, {",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\multiple-agents.spec.ts",
+      "line": 279,
+      "content": "const response = await request.post(`http://localhost:7778/api/dashboard/agents/${agentId}/task`, {",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\multiple-agents.spec.ts",
+      "line": 322,
+      "content": "const response = await request.get(`http://localhost:7778/api/dashboard/agents/${agentId}/conversation`);",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\multiple-agents.spec.ts",
+      "line": 391,
+      "content": "const response = await request.post(`http://localhost:7778/api/dashboard/agents/${agentId}/task`, {",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\multiple-agents.spec.ts",
+      "line": 14,
+      "content": "const healthResponse = await request.get('http://localhost:7778/health');",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\multiple-agents.spec.ts",
+      "line": 21,
+      "content": "const agentsResponse = await request.get('http://localhost:7778/api/dashboard/agents');",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\multiple-agents.spec.ts",
+      "line": 32,
+      "content": "const agentResponse = await request.get(`http://localhost:7778/api/dashboard/agents/${agentId}`);",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\multiple-agents.spec.ts",
+      "line": 38,
+      "content": "const createResponse = await request.post('http://localhost:7778/api/dashboard/agents', {",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\multiple-agents.spec.ts",
+      "line": 80,
+      "content": "const response = await request.post(`http://localhost:7778/api/dashboard/agents/${agentId}/task`, {",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\multiple-agents.spec.ts",
+      "line": 151,
+      "content": "const response = await request.post(`http://localhost:7778/api/dashboard/agents/${agentId}/message`, {",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\multiple-agents.spec.ts",
+      "line": 219,
+      "content": "const response = await request.post(`http://localhost:7778/api/dashboard/agents/${agentId}/task`, {",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\multiple-agents.spec.ts",
+      "line": 279,
+      "content": "const response = await request.post(`http://localhost:7778/api/dashboard/agents/${agentId}/task`, {",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\multiple-agents.spec.ts",
+      "line": 322,
+      "content": "const response = await request.get(`http://localhost:7778/api/dashboard/agents/${agentId}/conversation`);",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\multiple-agents.spec.ts",
+      "line": 391,
+      "content": "const response = await request.post(`http://localhost:7778/api/dashboard/agents/${agentId}/task`, {",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\network-debug.spec.ts",
+      "line": 4,
+      "content": "const API_URL = 'http://localhost:7778';",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\network-error-check.spec.ts",
+      "line": 140,
+      "content": "const API_BASE = 'http://localhost:7778';",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\real-agents.spec.ts",
+      "line": 8,
+      "content": "const response = await request.get('http://localhost:7778/api/dashboard/agents');",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\real-agents.spec.ts",
+      "line": 90,
+      "content": "const response = await request.get('http://localhost:7778/api/dashboard/agents');",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\real-agents.spec.ts",
+      "line": 113,
+      "content": "const response = await request.get('http://localhost:7778/api/dashboard/data-sources');",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\real-agents.spec.ts",
+      "line": 131,
+      "content": "const detailResponse = await request.get(`http://localhost:7778/api/dashboard/agents/${agent.id}`);",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\real-agents.spec.ts",
+      "line": 139,
+      "content": "const controlResponse = await request.post(`http://localhost:7778/api/dashboard/agents/${agent.id}/control`, {",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\real-agents.spec.ts",
+      "line": 221,
+      "content": "const response = await request.get('http://localhost:7778/api/dashboard/agents');",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\real-agents.spec.ts",
+      "line": 272,
+      "content": "const liveDataResponse = await request.get('http://localhost:7778/api/dashboard/live-data');",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\real-agents.spec.ts",
+      "line": 293,
+      "content": "const liveDataResponse2 = await request.get('http://localhost:7778/api/dashboard/live-data');",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\real-agents.spec.ts",
+      "line": 8,
+      "content": "const response = await request.get('http://localhost:7778/api/dashboard/agents');",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\real-agents.spec.ts",
+      "line": 90,
+      "content": "const response = await request.get('http://localhost:7778/api/dashboard/agents');",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\real-agents.spec.ts",
+      "line": 113,
+      "content": "const response = await request.get('http://localhost:7778/api/dashboard/data-sources');",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\real-agents.spec.ts",
+      "line": 131,
+      "content": "const detailResponse = await request.get(`http://localhost:7778/api/dashboard/agents/${agent.id}`);",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\real-agents.spec.ts",
+      "line": 139,
+      "content": "const controlResponse = await request.post(`http://localhost:7778/api/dashboard/agents/${agent.id}/control`, {",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\real-agents.spec.ts",
+      "line": 221,
+      "content": "const response = await request.get('http://localhost:7778/api/dashboard/agents');",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\real-agents.spec.ts",
+      "line": 272,
+      "content": "const liveDataResponse = await request.get('http://localhost:7778/api/dashboard/live-data');",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\real-agents.spec.ts",
+      "line": 293,
+      "content": "const liveDataResponse2 = await request.get('http://localhost:7778/api/dashboard/live-data');",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 8,
+      "content": "const response = await request.get('http://localhost:7778/api/dashboard/agents');",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 34,
+      "content": "const response = await request.get('http://localhost:7778/api/dashboard/agents');",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 101,
+      "content": "const response = await request.get('http://localhost:7778/api/dashboard/stats');",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 141,
+      "content": "const response = await request.get(`http://localhost:7778/api/dashboard/${source}`);",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 220,
+      "content": "const response = await request.get(`http://localhost:7778/api/dashboard/${requestType}`);",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 286,
+      "content": "'http://localhost:7778/api/dashboard/agents',",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 287,
+      "content": "'http://localhost:7778/api/dashboard/stats',",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 288,
+      "content": "'http://localhost:7778/api/dashboard/data-sources'",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 382,
+      "content": "request.get(`http://localhost:7778${edgeCase.endpoint}`)",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 392,
+      "content": "const response = await request.get(`http://localhost:7778${edgeCase.endpoint}`, {",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 425,
+      "content": "const agentsResponse = await request.get('http://localhost:7778/api/dashboard/agents');",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 436,
+      "content": "const statsResponse = await request.get('http://localhost:7778/api/dashboard/stats');",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 447,
+      "content": "const sourcesResponse = await request.get('http://localhost:7778/api/dashboard/data-sources');",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 458,
+      "content": "const healthResponse = await request.get('http://localhost:7778/health');",
+      "deprecated_item": "localhost:7778",
+      "match": "localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 8,
+      "content": "const response = await request.get('http://localhost:7778/api/dashboard/agents');",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 34,
+      "content": "const response = await request.get('http://localhost:7778/api/dashboard/agents');",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 101,
+      "content": "const response = await request.get('http://localhost:7778/api/dashboard/stats');",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 141,
+      "content": "const response = await request.get(`http://localhost:7778/api/dashboard/${source}`);",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 220,
+      "content": "const response = await request.get(`http://localhost:7778/api/dashboard/${requestType}`);",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 286,
+      "content": "'http://localhost:7778/api/dashboard/agents',",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 287,
+      "content": "'http://localhost:7778/api/dashboard/stats',",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 288,
+      "content": "'http://localhost:7778/api/dashboard/data-sources'",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 382,
+      "content": "request.get(`http://localhost:7778${edgeCase.endpoint}`)",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 392,
+      "content": "const response = await request.get(`http://localhost:7778${edgeCase.endpoint}`, {",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 425,
+      "content": "const agentsResponse = await request.get('http://localhost:7778/api/dashboard/agents');",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 436,
+      "content": "const statsResponse = await request.get('http://localhost:7778/api/dashboard/stats');",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 447,
+      "content": "const sourcesResponse = await request.get('http://localhost:7778/api/dashboard/data-sources');",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\system-performance.spec.ts",
+      "line": 458,
+      "content": "const healthResponse = await request.get('http://localhost:7778/health');",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\vf-dev-comprehensive.spec.ts",
+      "line": 5,
+      "content": "const PRIMARY_API = 'http://localhost:7778';",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\vf-dev-comprehensive.spec.ts",
+      "line": 6,
+      "content": "const SECONDARY_API = 'http://localhost:7778';",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\vf-dev-live-test.spec.ts",
+      "line": 5,
+      "content": "const API_URL = 'http://localhost:7778';",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://localhost:7778"
+    },
+    {
+      "type": "deprecated_pattern",
+      "file": "tests\\vf-dev-test.spec.ts",
+      "line": 4,
+      "content": "const VF_DEV_API = 'http://niro-agent-dashboard-dev-816454053517.s3-website-us-east-1.amazonaws.com:7777';",
+      "deprecated_item": "http://.*:7777",
+      "match": "http://niro-agent-dashboard-dev-816454053517.s3-website-us-east-1.amazonaws.com:7777"
+    }
+  ],
+  "clean_files": 97,
+  "total_issues": 196
+}

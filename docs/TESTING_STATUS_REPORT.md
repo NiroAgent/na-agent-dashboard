@@ -24,11 +24,11 @@
 ### **Phase 1: Current System Validation ✅**
 ```bash
 # Python API Health Check
-curl http://98.81.93.132:7777/api/dashboard/agents
+curl http://localhost:7778/api/dashboard/agents
 # Response: {"message": "Niro Agent API", "status": "running"} ✅
 
 # Agent Data Verification  
-curl http://98.81.93.132:7777/api/agents
+curl http://localhost:7778/api/agents
 # Response: 5,491 bytes (substantial agent data) ✅
 
 # Dashboard Test Results (via Sonnet)

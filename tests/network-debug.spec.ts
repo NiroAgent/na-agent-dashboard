@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('API Network Connectivity Tests', () => {
-  const API_URL = 'http://98.81.93.132:7777';
+  const API_URL = 'http://localhost:7778';
   const DASHBOARD_URL = 'http://niro-agent-dashboard-dev-816454053517.s3-website-us-east-1.amazonaws.com';
 
   test('should verify API endpoint is accessible', async ({ request }) => {

@@ -1,0 +1,94 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Simple Staging Agent Monitoring Infrastructure'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: staging
+    Description: Deployment environment
+    
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    Description: EC2 instance type
+    
+  KeyPairName:
+    Type: String
+    Default: niro-agent-keypair
+    Description: EC2 Key Pair name
+
+Resources:
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for agent monitoring
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: SSH access
+        - IpProtocol: tcp
+          FromPort: 7778
+          ToPort: 7778
+          CidrIp: 0.0.0.0/0
+          Description: Agent API port
+        - IpProtocol: tcp
+          FromPort: 8090
+          ToPort: 8090
+          CidrIp: 0.0.0.0/0
+          Description: Monitoring dashboard
+      Tags:
+        - Key: Name
+          Value: staging-monitoring-sg
+        - Key: Environment
+          Value: !Ref Environment
+
+  MonitoringInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0a19bcec6d2ec60fb
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyPairName
+      SecurityGroupIds:
+        - !Ref SecurityGroup
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y python3 python3-pip git
+          echo "Agent monitoring instance initialized" > /var/log/init.log
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-agent-monitor'
+        - Key: Environment
+          Value: !Ref Environment
+
+Outputs:
+  InstanceId:
+    Description: EC2 Instance ID
+    Value: !Ref MonitoringInstance
+    Export:
+      Name: !Sub '${Environment}-monitoring-instance-id'
+    
+  PublicIP:
+    Description: Public IP address
+    Value: !GetAtt MonitoringInstance.PublicIp
+    Export:
+      Name: !Sub '${Environment}-monitoring-public-ip'
+    
+  AgentAPIURL:
+    Description: Agent API URL
+    Value: !Sub 'http://${MonitoringInstance.PublicIp}:7778'
+    Export:
+      Name: !Sub '${Environment}-agent-api-url'
+    
+  DashboardURL:
+    Description: Monitoring Dashboard URL
+    Value: !Sub 'http://${MonitoringInstance.PublicIp}:8090'
+    Export:
+      Name: !Sub '${Environment}-dashboard-url'
+    
+  SSHCommand:
+    Description: SSH command to connect
+    Value: !Sub 'ssh -i ~/.ssh/${KeyPairName}.pem ec2-user@${MonitoringInstance.PublicIp}'

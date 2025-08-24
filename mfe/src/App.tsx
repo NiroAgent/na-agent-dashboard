@@ -80,7 +80,7 @@ function App() {
       const response = await fetch(`${API_BASE_URL}/api/agents`);
       if (response.ok) {
         const data = await response.json();
-        // API returns agents array directly, not wrapped in object
+        // Real agent server returns array directly
         setAgents(Array.isArray(data) ? data : []);
       }
     } catch (error) {

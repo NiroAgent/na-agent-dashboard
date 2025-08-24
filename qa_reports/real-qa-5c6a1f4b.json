@@ -1,0 +1,56 @@
+{
+  "report_id": "real-qa-5c6a1f4b",
+  "timestamp": "2025-08-23T15:06:58.937429",
+  "agent_type": "Real AI QA Agent",
+  "execution_type": "Actual Playwright Tests",
+  "summary": {
+    "total_services": 5,
+    "total_tests": 0,
+    "total_passed": 0,
+    "total_failed": 0,
+    "success_rate": 0,
+    "total_execution_time": 0.0
+  },
+  "service_results": {
+    "vf-dashboard-service": {
+      "total_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "execution_time": 0.0,
+      "success_rate": 0,
+      "test_results": []
+    },
+    "vf-video-service": {
+      "total_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "execution_time": 0.0,
+      "success_rate": 0,
+      "test_results": []
+    },
+    "vf-audio-service": {
+      "total_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "execution_time": 0.0,
+      "success_rate": 0,
+      "test_results": []
+    },
+    "vf-image-service": {
+      "total_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "execution_time": 0.0,
+      "success_rate": 0,
+      "test_results": []
+    },
+    "vf-text-service": {
+      "total_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "execution_time": 0.0,
+      "success_rate": 0,
+      "test_results": []
+    }
+  }
+}

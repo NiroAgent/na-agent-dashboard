@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('NA Agent Dashboard - Live Deployment', () => {
   const DASHBOARD_URL = 'http://niro-agent-dashboard-dev-816454053517.s3-website-us-east-1.amazonaws.com';
-  const API_URL = 'http://98.81.93.132:7777';
+  const API_URL = 'http://localhost:7778';
 
   test.beforeEach(async ({ page }) => {
     await page.goto(DASHBOARD_URL);

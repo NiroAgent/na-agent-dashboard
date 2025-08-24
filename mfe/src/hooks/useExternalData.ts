@@ -25,7 +25,7 @@ interface UseExternalDataReturn {
   dataSourceStatus: ExternalDataSource[];
 }
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:7777';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:7778';
 
 export const useExternalData = (): UseExternalDataReturn => {
   const [data, setData] = useState<LiveSystemData | null>(null);

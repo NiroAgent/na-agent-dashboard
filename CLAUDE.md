@@ -42,7 +42,7 @@ GET /health              # Server health check
 
 ### Previous Deployment (Still Active)
 - **Frontend**: http://niro-agent-dashboard-dev-816454053517.s3-website-us-east-1.amazonaws.com/
-- **Backend**: http://98.81.93.132:7777 (serves mocked data)
+- **Backend**: http://localhost:7778 (serves mocked data)
 - **Status**: Needs update to use real agent server
 
 ### Next Steps

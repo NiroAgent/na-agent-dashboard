@@ -170,7 +170,7 @@ aws cloudformation describe-stacks --stack-name niro-agent-dashboard-dev
 aws cloudformation describe-stack-events --stack-name niro-agent-dashboard-dev
 
 # Check API health
-curl http://98.81.93.132:7777/health
+curl http://localhost:7778/health
 ```
 
 ### Agent Server

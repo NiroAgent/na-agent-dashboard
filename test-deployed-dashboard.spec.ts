@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Deployed Dashboard Reality Check', () => {
   const DEPLOYED_URL = 'http://niro-agent-dashboard-dev-816454053517.s3-website-us-east-1.amazonaws.com/';
-  const PRODUCTION_API_7777 = 'http://98.81.93.132:7777';
+  const PRODUCTION_API_7777 = 'http://localhost:7778';
   const PRODUCTION_API_7778 = 'http://98.81.93.132:7778';
 
   test('verify deployed dashboard loads', async ({ page }) => {

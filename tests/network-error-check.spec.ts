@@ -137,7 +137,7 @@ test.describe('Network Error Detection Tests', () => {
   test('should check specific API endpoints for errors', async ({ request }) => {
     console.log('🔍 TESTING API ENDPOINTS FOR ERRORS...');
     
-    const API_BASE = 'http://98.81.93.132:7777';
+    const API_BASE = 'http://localhost:7778';
     const endpoints = [
       '/health',
       '/api/agents',

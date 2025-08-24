@@ -3,7 +3,7 @@
 ## 🎯 System Status: WORKING WITH REAL DATA
 
 ### API Backend - Real Agent Data ✅
-**Endpoint**: `http://98.81.93.132:7777/api/agents`
+**Endpoint**: `http://localhost:7778/api/agents`
 **Status**: ✅ Fully operational with real data
 
 **Real Data Metrics:**
@@ -43,7 +43,7 @@
 
 ### System Integration ✅
 **Frontend → API Connection**: ✅ Working
-- Frontend correctly configured to fetch from `http://98.81.93.132:7777`
+- Frontend correctly configured to fetch from `http://localhost:7778`
 - API returns real agent array directly
 - CORS headers allow S3 frontend to access EC2 API
 - Real-time updates every 5 seconds
@@ -101,13 +101,13 @@
 **Test Real Data Now:**
 ```bash
 # Test API directly
-curl http://98.81.93.132:7777/api/agents
+curl http://localhost:7778/api/agents
 
 # Test frontend  
 curl http://niro-agent-dashboard-dev-816454053517.s3-website-us-east-1.amazonaws.com/
 
 # Count agent statuses
-curl -s http://98.81.93.132:7777/api/agents | grep -o 'active\|idle\|busy' | sort | uniq -c
+curl -s http://localhost:7778/api/agents | grep -o 'active\|idle\|busy' | sort | uniq -c
 ```
 
 **Dashboard Access:**

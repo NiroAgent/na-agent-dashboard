@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('EC2 Production TypeScript API Tests', () => {
-  const EC2_API = 'http://98.81.93.132:7777';
+  const EC2_API = 'http://localhost:7778';
   const VF_DEV_DASHBOARD = 'http://niro-agent-dashboard-dev-816454053517.s3-website-us-east-1.amazonaws.com';
 
   test('should verify TypeScript API is running (not Python)', async ({ request }) => {

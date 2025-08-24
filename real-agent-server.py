@@ -9,6 +9,7 @@ import os
 import json
 import time
 import random
+import psutil
 from datetime import datetime
 
 try:
@@ -31,7 +32,8 @@ except ImportError:
 # Real agent discovery paths (Windows compatible)
 AGENT_PATHS = [
     r'E:\Projects\NiroAgent\na-business-service',
-    r'E:\Projects\NiroAgent\na-autonomous-system'
+    r'E:\Projects\NiroAgent\na-autonomous-system',
+    r'E:\Projects\NiroAgent\na-agent-dashboard'
 ]
 
 class RealAgentDiscovery:
@@ -49,7 +51,7 @@ class RealAgentDiscovery:
             if os.path.exists(path):
                 for root, dirs, files in os.walk(path):
                     for file in files:
-                        if file.endswith('.py') and 'agent' in file.lower():
+                        if file.endswith('.py') and ('agent' in file.lower() or 'daemon' in file.lower()):
                             full_path = os.path.join(root, file)
                             
                             # Determine agent type from filename and path
@@ -93,8 +95,10 @@ class RealAgentDiscovery:
             return 'devops'
         elif 'architect' in filename_lower:
             return 'architect'
-        elif 'developer' in filename_lower:
+        elif 'developer' in filename_lower or 'dev-daemon' in filename_lower:
             return 'developer'
+        elif 'business' in filename_lower:
+            return 'business'
         elif 'marketing' in filename_lower:
             return 'marketing'
         elif 'operations' in filename_lower:
@@ -113,9 +117,22 @@ class RealAgentDiscovery:
             return 'general'
     
     def _get_agent_status(self, file_path):
-        """Determine if agent is active based on file modification time"""
+        """Determine if agent is active based on running processes and file modification time"""
         try:
-            # Check if file was modified recently (within 24 hours = active)
+            filename = os.path.basename(file_path)
+            
+            # Check if this daemon agent is currently running as a process
+            if 'daemon' in filename.lower():
+                for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                    try:
+                        if proc.info['name'] == 'python.exe' and proc.info['cmdline']:
+                            cmdline = ' '.join(proc.info['cmdline'])
+                            if filename in cmdline:
+                                return 'active'
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        continue
+            
+            # Fallback to file modification time for non-daemon agents
             mtime = os.path.getmtime(file_path)
             now = time.time()
             hours_since_modified = (now - mtime) / 3600

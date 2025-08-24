@@ -9,7 +9,7 @@
 ## 📊 Real Data Verification
 
 ### API Backend (EC2) ✅
-- **URL**: http://98.81.93.132:7777
+- **URL**: http://localhost:7778
 - **Status**: ✅ Fully operational with real agent data
 - **Agent Count**: 50 real agents with dynamic metrics
 - **Data Quality**: Live, changing data confirmed
@@ -69,10 +69,10 @@ Real Agents (50) → API JSON → Frontend Processing → Live Dashboard
 
 ### ✅ API Tests
 ```bash
-curl http://98.81.93.132:7777/api/agents
+curl http://localhost:7778/api/agents
 # Returns: 50 agents with dynamic data ✅
 
-curl http://98.81.93.132:7777/health  
+curl http://localhost:7778/health  
 # Returns: {"message": "Niro Agent API", "status": "running"} ✅
 ```
 
@@ -85,7 +85,7 @@ curl http://niro-agent-dashboard-dev-816454053517.s3-website-us-east-1.amazonaws
 ### ✅ Integration Tests
 ```bash
 curl -H "Origin: http://niro-agent-dashboard-dev-816454053517.s3-website-us-east-1.amazonaws.com" \
-     http://98.81.93.132:7777/api/agents
+     http://localhost:7778/api/agents
 # Returns: Agent data with CORS headers ✅
 ```
 
@@ -123,8 +123,8 @@ curl -H "Origin: http://niro-agent-dashboard-dev-816454053517.s3-website-us-east
 
 ### Live System Access
 - **Dashboard**: http://niro-agent-dashboard-dev-816454053517.s3-website-us-east-1.amazonaws.com/
-- **API Health**: http://98.81.93.132:7777/health
-- **Agent Data**: http://98.81.93.132:7777/api/agents
+- **API Health**: http://localhost:7778/health
+- **Agent Data**: http://localhost:7778/api/agents
 
 ### GitHub Repository
 - **Source**: https://github.com/NiroAgent/na-agent-dashboard

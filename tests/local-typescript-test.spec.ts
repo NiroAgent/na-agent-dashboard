@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Local TypeScript API Network Error Tests', () => {
-  const LOCAL_API = 'http://localhost:7777';
+  const LOCAL_API = 'http://localhost:7778';
   const LOCAL_DASHBOARD = 'http://localhost:3001';
 
   test('should have zero network errors with all HTTP methods', async ({ page }) => {
@@ -28,7 +28,7 @@ test.describe('Local TypeScript API Network Error Tests', () => {
     
     // Track successful requests
     page.on('response', response => {
-      if (response.url().includes('localhost:7777')) {
+      if (response.url().includes('localhost:7778')) {
         if (response.status() >= 200 && response.status() < 300) {
           successfulRequests.push(`${response.request().method()} ${response.url()} - ${response.status()}`);
           console.log(`✅ SUCCESS: ${response.request().method()} ${response.url()} - ${response.status()}`);

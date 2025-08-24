@@ -2,8 +2,8 @@ import { test, expect } from '@playwright/test';
 
 test.describe('VF-Dev Comprehensive Dashboard Tests', () => {
   const DASHBOARD_URL = 'http://niro-agent-dashboard-dev-816454053517.s3-website-us-east-1.amazonaws.com/';
-  const PRIMARY_API = 'http://98.81.93.132:7777';
-  const SECONDARY_API = 'http://54.175.94.45:7777';
+  const PRIMARY_API = 'http://localhost:7778';
+  const SECONDARY_API = 'http://localhost:7778';
 
   test('should load dashboard and detect API connectivity', async ({ page, request }) => {
     console.log('🧪 Testing VF-Dev Dashboard with API connectivity detection...');

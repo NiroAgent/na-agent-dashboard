@@ -11,14 +11,14 @@ test.describe('Multiple Agents Task Handling', () => {
 
   test.beforeAll(async ({ request }) => {
     // Verify API is running
-    const healthResponse = await request.get('http://localhost:7777/health');
+    const healthResponse = await request.get('http://localhost:7778/health');
     expect(healthResponse.ok()).toBeTruthy();
     console.log('✅ API server is healthy');
   });
 
   test('should create multiple agents if they don\'t exist', async ({ request }) => {
     // First check existing agents
-    const agentsResponse = await request.get('http://localhost:7777/api/dashboard/agents');
+    const agentsResponse = await request.get('http://localhost:7778/api/dashboard/agents');
     expect(agentsResponse.ok()).toBeTruthy();
     
     const agentsData = await agentsResponse.json();
@@ -29,13 +29,13 @@ test.describe('Multiple Agents Task Handling', () => {
       console.log(`🔍 Checking agent: ${agentId}`);
       
       // Try to get agent details
-      const agentResponse = await request.get(`http://localhost:7777/api/dashboard/agents/${agentId}`);
+      const agentResponse = await request.get(`http://localhost:7778/api/dashboard/agents/${agentId}`);
       
       if (!agentResponse.ok()) {
         console.log(`➕ Creating agent: ${agentId}`);
         
         // Create the agent via API if it doesn't exist
-        const createResponse = await request.post('http://localhost:7777/api/dashboard/agents', {
+        const createResponse = await request.post('http://localhost:7778/api/dashboard/agents', {
           data: {
             id: agentId,
             name: agentId.replace('demo-', '').replace('-', ' '),
@@ -77,7 +77,7 @@ test.describe('Multiple Agents Task Handling', () => {
       const startTime = Date.now();
       
       try {
-        const response = await request.post(`http://localhost:7777/api/dashboard/agents/${agentId}/task`, {
+        const response = await request.post(`http://localhost:7778/api/dashboard/agents/${agentId}/task`, {
           data: {
             task: task,
             priority: priority,
@@ -148,7 +148,7 @@ test.describe('Multiple Agents Task Handling', () => {
       const startTime = Date.now();
       
       try {
-        const response = await request.post(`http://localhost:7777/api/dashboard/agents/${agentId}/message`, {
+        const response = await request.post(`http://localhost:7778/api/dashboard/agents/${agentId}/message`, {
           data: {
             message: message,
             context: {
@@ -216,7 +216,7 @@ test.describe('Multiple Agents Task Handling', () => {
     // Submit all tasks as fast as possible
     const loadPromises = loadTestTasks.map(async ({ agentId, task, priority }, index) => {
       try {
-        const response = await request.post(`http://localhost:7777/api/dashboard/agents/${agentId}/task`, {
+        const response = await request.post(`http://localhost:7778/api/dashboard/agents/${agentId}/task`, {
           data: {
             task: task,
             priority: priority,
@@ -276,7 +276,7 @@ test.describe('Multiple Agents Task Handling', () => {
     for (const { agentId, task } of monitoringTasks) {
       console.log(`📤 Submitting task to ${agentId}: ${task.substring(0, 40)}...`);
       
-      const response = await request.post(`http://localhost:7777/api/dashboard/agents/${agentId}/task`, {
+      const response = await request.post(`http://localhost:7778/api/dashboard/agents/${agentId}/task`, {
         data: { task, priority: 'medium' }
       });
 
@@ -319,7 +319,7 @@ test.describe('Multiple Agents Task Handling', () => {
 
     for (const agentId of agents.slice(0, 3)) { // Check first 3 agents
       try {
-        const response = await request.get(`http://localhost:7777/api/dashboard/agents/${agentId}/conversation`);
+        const response = await request.get(`http://localhost:7778/api/dashboard/agents/${agentId}/conversation`);
         
         if (response.ok()) {
           const conversation = await response.json();
@@ -388,7 +388,7 @@ test.describe('Multiple Agents Task Handling', () => {
       console.log(`🎯 ${agentId}: ${task.substring(0, 50)}...`);
 
       try {
-        const response = await request.post(`http://localhost:7777/api/dashboard/agents/${agentId}/task`, {
+        const response = await request.post(`http://localhost:7778/api/dashboard/agents/${agentId}/task`, {
           data: {
             task,
             priority,

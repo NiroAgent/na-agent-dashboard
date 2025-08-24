@@ -11,7 +11,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const BASE_API_URL = 'http://98.81.93.132:7777';
+const BASE_API_URL = 'http://localhost:7778';
 
 // Proxy existing endpoints
 app.use('/api/agents', async (req, res) => {

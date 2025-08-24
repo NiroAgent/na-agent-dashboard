@@ -131,7 +131,7 @@ app.get('/agents', async (req, res) => {
         processes: systemMetrics.processes
       },
       source: 'live-agent-manager',
-      port: 7777
+      port: 7778
     });
   } catch (error) {
     console.error('Error fetching live agents:', error);
@@ -339,8 +339,8 @@ setInterval(async () => {
   }
 }, 3000); // Every 3 seconds
 
-// Start server - Use 7777 for vf-dev deployment
-const PORT = process.env.PORT || 7777;
+// Start server - Use 7779 to avoid conflict with real agent server on 7778
+const PORT = process.env.PORT || 7779;
 httpServer.listen(PORT, () => {
   console.log(`🚀 Agent Dashboard Backend running on http://localhost:${PORT}`);
   console.log(`📊 Frontend should connect to ws://localhost:${PORT}`);

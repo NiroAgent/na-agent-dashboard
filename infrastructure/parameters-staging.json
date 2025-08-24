@@ -4,19 +4,11 @@
     "ParameterValue": "staging"
   },
   {
-    "ParameterKey": "AgentInstanceId",
-    "ParameterValue": "i-0af59b7036f7b0b77"
+    "ParameterKey": "InstanceType",
+    "ParameterValue": "t3.micro"
   },
   {
-    "ParameterKey": "ApiPort",
-    "ParameterValue": "7777"
-  },
-  {
-    "ParameterKey": "DomainName",
-    "ParameterValue": "staging-dashboard.niroagent.com"
-  },
-  {
-    "ParameterKey": "CertificateArn",
-    "ParameterValue": ""
+    "ParameterKey": "KeyPairName",
+    "ParameterValue": "niro-agent-keypair"
   }
 ]

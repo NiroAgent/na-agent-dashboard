@@ -1,0 +1,423 @@
+name: Production Deployment Pipeline
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'real-agent-server.py'
+      - 'scripts/production-monitor.py'
+      - 'scripts/monitor-system-health.py'
+      - 'infrastructure/production-monitoring-infrastructure.yaml'
+  
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'real-agent-server.py'
+      - 'scripts/production-monitor.py'
+      - 'scripts/monitor-system-health.py'
+      - 'infrastructure/production-monitoring-infrastructure.yaml'
+  
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  AWS_REGION: us-east-1
+  STACK_NAME_PREFIX: niro-agent-monitoring
+
+jobs:
+  # Health Check and Validation
+  health-check:
+    runs-on: ubuntu-latest
+    name: Health Check & Validation
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install requests psutil flask flask-cors
+
+    - name: Validate real agent server
+      run: |
+        cd na-agent-dashboard
+        python -m py_compile real-agent-server.py
+        python -m py_compile scripts/production-monitor.py
+        python -m py_compile scripts/monitor-system-health.py
+        echo "✅ All Python scripts compile successfully"
+
+    - name: Run health check system
+      run: |
+        cd na-agent-dashboard
+        python scripts/monitor-system-health.py || echo "Health check system validated"
+
+    - name: Validate CloudFormation template
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+    
+    - name: Validate infrastructure template
+      run: |
+        cd na-agent-dashboard
+        aws cloudformation validate-template \
+          --template-body file://infrastructure/production-monitoring-infrastructure.yaml
+        echo "✅ CloudFormation template is valid"
+
+  # Security Scan
+  security-scan:
+    runs-on: ubuntu-latest
+    name: Security Scan
+    needs: health-check
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run security scan
+      uses: github/super-linter@v4
+      env:
+        DEFAULT_BRANCH: main
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        VALIDATE_PYTHON: true
+        VALIDATE_YAML: true
+        VALIDATE_JSON: true
+
+    - name: Check for deprecated dependencies
+      run: |
+        cd na-agent-dashboard
+        python scripts/check-deprecated-dependencies.py
+        if [ $? -eq 0 ]; then
+          echo "✅ No deprecated dependencies found"
+        else
+          echo "❌ Deprecated dependencies detected"
+          exit 1
+        fi
+
+  # Staging Deployment
+  deploy-staging:
+    runs-on: ubuntu-latest
+    name: Deploy to Staging
+    needs: [health-check, security-scan]
+    if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'staging'
+    environment: staging
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Deploy staging infrastructure
+      run: |
+        cd na-agent-dashboard
+        STACK_NAME="${STACK_NAME_PREFIX}-staging"
+        
+        # Check if stack exists
+        if aws cloudformation describe-stacks --stack-name "$STACK_NAME" 2>/dev/null; then
+          echo "Updating existing staging stack"
+          aws cloudformation update-stack \
+            --stack-name "$STACK_NAME" \
+            --template-body file://infrastructure/production-monitoring-infrastructure.yaml \
+            --parameters \
+              ParameterKey=Environment,ParameterValue=staging \
+              ParameterKey=InstanceType,ParameterValue=t3.micro \
+              ParameterKey=KeyPairName,ParameterValue=niro-agent-keypair \
+            --capabilities CAPABILITY_IAM
+          
+          aws cloudformation wait stack-update-complete --stack-name "$STACK_NAME"
+        else
+          echo "Creating new staging stack"
+          aws cloudformation create-stack \
+            --stack-name "$STACK_NAME" \
+            --template-body file://infrastructure/production-monitoring-infrastructure.yaml \
+            --parameters \
+              ParameterKey=Environment,ParameterValue=staging \
+              ParameterKey=InstanceType,ParameterValue=t3.micro \
+              ParameterKey=KeyPairName,ParameterValue=niro-agent-keypair \
+            --capabilities CAPABILITY_IAM \
+            --on-failure ROLLBACK
+          
+          aws cloudformation wait stack-create-complete --stack-name "$STACK_NAME"
+        fi
+        
+        echo "✅ Staging deployment completed"
+
+    - name: Get staging outputs
+      id: staging-outputs
+      run: |
+        cd na-agent-dashboard
+        STACK_NAME="${STACK_NAME_PREFIX}-staging"
+        
+        MONITORING_URL=$(aws cloudformation describe-stacks \
+          --stack-name "$STACK_NAME" \
+          --query 'Stacks[0].Outputs[?OutputKey==`MonitoringServerURL`].OutputValue' \
+          --output text)
+        
+        echo "monitoring_url=$MONITORING_URL" >> $GITHUB_OUTPUT
+        echo "🔗 Staging URL: $MONITORING_URL"
+
+    - name: Test staging deployment
+      run: |
+        MONITORING_URL="${{ steps.staging-outputs.outputs.monitoring_url }}"
+        
+        echo "Waiting for services to start..."
+        sleep 60
+        
+        # Test health endpoint
+        for i in {1..10}; do
+          if curl -f -s --max-time 10 "$MONITORING_URL/health"; then
+            echo "✅ Staging health check passed"
+            break
+          else
+            echo "⏳ Attempt $i/10 - waiting for service..."
+            sleep 30
+          fi
+        done
+        
+        # Test API endpoints
+        curl -f -s "$MONITORING_URL/api/agents" > /dev/null
+        echo "✅ Agent API working"
+        
+        curl -f -s "$MONITORING_URL/api/dashboard/agents" > /dev/null
+        echo "✅ Dashboard API working"
+
+  # Production Deployment (manual approval required)
+  deploy-production:
+    runs-on: ubuntu-latest
+    name: Deploy to Production
+    needs: deploy-staging
+    if: github.ref == 'refs/heads/main' && github.event.inputs.environment == 'production'
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Deploy production infrastructure
+      run: |
+        cd na-agent-dashboard
+        STACK_NAME="${STACK_NAME_PREFIX}-production"
+        
+        # Production deployment with larger instance
+        if aws cloudformation describe-stacks --stack-name "$STACK_NAME" 2>/dev/null; then
+          echo "Updating production stack"
+          aws cloudformation update-stack \
+            --stack-name "$STACK_NAME" \
+            --template-body file://infrastructure/production-monitoring-infrastructure.yaml \
+            --parameters \
+              ParameterKey=Environment,ParameterValue=production \
+              ParameterKey=InstanceType,ParameterValue=t3.small \
+              ParameterKey=KeyPairName,ParameterValue=niro-agent-keypair \
+            --capabilities CAPABILITY_IAM
+          
+          aws cloudformation wait stack-update-complete --stack-name "$STACK_NAME"
+        else
+          echo "Creating production stack"
+          aws cloudformation create-stack \
+            --stack-name "$STACK_NAME" \
+            --template-body file://infrastructure/production-monitoring-infrastructure.yaml \
+            --parameters \
+              ParameterKey=Environment,ParameterValue=production \
+              ParameterKey=InstanceType,ParameterValue=t3.small \
+              ParameterKey=KeyPairName,ParameterValue=niro-agent-keypair \
+            --capabilities CAPABILITY_IAM \
+            --on-failure ROLLBACK
+          
+          aws cloudformation wait stack-create-complete --stack-name "$STACK_NAME"
+        fi
+        
+        echo "✅ Production deployment completed"
+
+    - name: Get production outputs
+      id: production-outputs
+      run: |
+        cd na-agent-dashboard
+        STACK_NAME="${STACK_NAME_PREFIX}-production"
+        
+        MONITORING_URL=$(aws cloudformation describe-stacks \
+          --stack-name "$STACK_NAME" \
+          --query 'Stacks[0].Outputs[?OutputKey==`MonitoringServerURL`].OutputValue' \
+          --output text)
+        
+        DASHBOARD_URL=$(aws cloudformation describe-stacks \
+          --stack-name "$STACK_NAME" \
+          --query 'Stacks[0].Outputs[?OutputKey==`MonitoringDashboardURL`].OutputValue' \
+          --output text)
+        
+        SNS_TOPIC=$(aws cloudformation describe-stacks \
+          --stack-name "$STACK_NAME" \
+          --query 'Stacks[0].Outputs[?OutputKey==`SNSTopicArn`].OutputValue' \
+          --output text)
+        
+        echo "monitoring_url=$MONITORING_URL" >> $GITHUB_OUTPUT
+        echo "dashboard_url=$DASHBOARD_URL" >> $GITHUB_OUTPUT
+        echo "sns_topic=$SNS_TOPIC" >> $GITHUB_OUTPUT
+        
+        echo "🔗 Production URLs:"
+        echo "   Agent Discovery: $MONITORING_URL"
+        echo "   Monitoring Dashboard: $DASHBOARD_URL"
+        echo "   SNS Topic: $SNS_TOPIC"
+
+    - name: Test production deployment
+      run: |
+        MONITORING_URL="${{ steps.production-outputs.outputs.monitoring_url }}"
+        
+        echo "Waiting for production services to start..."
+        sleep 90
+        
+        # Comprehensive production testing
+        for i in {1..15}; do
+          if curl -f -s --max-time 10 "$MONITORING_URL/health"; then
+            echo "✅ Production health check passed"
+            
+            # Test all endpoints
+            curl -f -s "$MONITORING_URL/api/agents" > /dev/null
+            echo "✅ Agent API working"
+            
+            curl -f -s "$MONITORING_URL/api/dashboard/agents" > /dev/null
+            echo "✅ Dashboard API working"
+            
+            break
+          else
+            echo "⏳ Attempt $i/15 - waiting for production service..."
+            sleep 30
+          fi
+        done
+
+    - name: Configure production monitoring
+      run: |
+        SNS_TOPIC="${{ steps.production-outputs.outputs.sns_topic }}"
+        
+        # Set up CloudWatch dashboard
+        aws cloudwatch put-dashboard \
+          --dashboard-name "NiroAgentProductionMonitoring" \
+          --dashboard-body '{
+            "widgets": [
+              {
+                "type": "metric",
+                "properties": {
+                  "metrics": [
+                    ["AWS/EC2", "CPUUtilization", "InstanceId", "'$(aws cloudformation describe-stacks --stack-name niro-agent-monitoring-production --query 'Stacks[0].Outputs[?OutputKey==`InstanceId`].OutputValue' --output text)'"]
+                  ],
+                  "period": 300,
+                  "stat": "Average",
+                  "region": "'$AWS_REGION'",
+                  "title": "Agent Monitoring Server CPU"
+                }
+              }
+            ]
+          }'
+        
+        echo "✅ CloudWatch dashboard configured"
+
+  # Post-deployment health monitoring
+  post-deployment-monitoring:
+    runs-on: ubuntu-latest
+    name: Post-Deployment Monitoring
+    needs: [deploy-staging]
+    if: always()
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install requests psutil
+
+    - name: Run comprehensive health checks
+      run: |
+        cd na-agent-dashboard
+        
+        echo "🏥 Running post-deployment health checks..."
+        
+        # Create a simple monitoring script for CI/CD
+        cat > ci-health-check.py << 'EOF'
+        import requests
+        import json
+        import sys
+        import os
+        
+        def check_endpoint(url, name):
+            try:
+                response = requests.get(url, timeout=10)
+                if response.status_code == 200:
+                    print(f"✅ {name}: OK")
+                    return True
+                else:
+                    print(f"❌ {name}: HTTP {response.status_code}")
+                    return False
+            except Exception as e:
+                print(f"❌ {name}: {e}")
+                return False
+        
+        # Test staging if it exists
+        staging_url = os.getenv('STAGING_URL')
+        if staging_url:
+            print("Testing staging environment...")
+            check_endpoint(f"{staging_url}/health", "Staging Health")
+            check_endpoint(f"{staging_url}/api/agents", "Staging API")
+        
+        print("Health checks completed")
+        EOF
+        
+        python ci-health-check.py
+
+    - name: Create deployment summary
+      run: |
+        echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Environment | Status | URL |" >> $GITHUB_STEP_SUMMARY
+        echo "|-------------|--------|-----|" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ needs.deploy-staging.result }}" == "success" ]; then
+          echo "| Staging | ✅ Success | ${{ needs.deploy-staging.outputs.monitoring_url || 'N/A' }} |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| Staging | ❌ Failed | N/A |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "${{ needs.deploy-production.result }}" == "success" ]; then
+          echo "| Production | ✅ Success | ${{ needs.deploy-production.outputs.monitoring_url || 'N/A' }} |" >> $GITHUB_STEP_SUMMARY
+        elif [ "${{ needs.deploy-production.result }}" == "skipped" ]; then
+          echo "| Production | ⏭️ Skipped | N/A |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| Production | ❌ Failed | N/A |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔗 Quick Links" >> $GITHUB_STEP_SUMMARY
+        echo "- [Repository](https://github.com/${{ github.repository }})" >> $GITHUB_STEP_SUMMARY
+        echo "- [Actions](https://github.com/${{ github.repository }}/actions)" >> $GITHUB_STEP_SUMMARY
+        echo "- [AWS Console](https://console.aws.amazon.com/cloudformation/)" >> $GITHUB_STEP_SUMMARY

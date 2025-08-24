@@ -1,212 +1,170 @@
 # NA Agent Dashboard
 
-## 🤖 Unified Agent Management & Monitoring Platform
+## 🤖 Real Agent Discovery & Management Platform
 
-A comprehensive dashboard for managing, monitoring, and deploying AI agents across AWS infrastructure (EC2, ECS, Batch) with real-time communication capabilities.
+A comprehensive dashboard for discovering, monitoring, and managing AI agents from the filesystem with real-time process detection and live metrics.
 
-## Features
+> **✅ REAL DATA SYSTEM** - This dashboard uses the **Real Agent Discovery Server** (`real-agent-server.py`) that scans the filesystem for actual agent files and detects running processes. No mocked or simulated data.
 
-- **Real-time Agent Monitoring**: View status, CPU, and memory usage of all agents
-- **Terminal Multiplexing**: View live terminal output from each agent
-- **System Resource Monitoring**: Track CPU, memory, disk usage with historical charts
-- **GitHub Issues Integration**: View and manage agent-task issues
-- **Agent Control**: Start, stop, and restart agents from the dashboard
-- **WebSocket Communication**: Real-time updates using Socket.IO
+## Features ✅
 
-## Architecture
+- **Real Agent Discovery**: Automatically discovers 237+ agent files from filesystem
+- **Live Process Detection**: Uses `psutil` to detect running daemon agents as "active" 
+- **Real-time Metrics**: Displays actual CPU, memory usage, and task counts from running processes
+- **Status Classification**: Shows agents as active/idle/dormant based on real activity
+- **Multi-directory Scanning**: Scans business service, autonomous system, and dashboard directories
+- **No Mocked Data**: All metrics and status information comes from real system state
+- **Live Daemon Agents**: Includes running QA, Business, and Developer daemon processes
 
+## Architecture ✅
+
+### Current Real Agent System
 ```
-agent-dashboard/
-├── frontend/          # React + TypeScript + Material-UI
+na-agent-dashboard/
+├── real-agent-server.py           # 🎯 MAIN SERVER - Real agent discovery (Port 7778)
+├── simple-*-daemon.py             # 🔴 RUNNING - Live daemon agents (QA, Business, Dev)
+├── mfe/                          # React frontend (Port 3001)
 │   ├── src/
-│   │   ├── components/
-│   │   │   ├── AgentGrid.tsx      # Agent cards with controls
-│   │   │   ├── SystemMetrics.tsx  # System resource charts
-│   │   │   ├── TerminalView.tsx   # xterm.js terminal
-│   │   │   └── IssuePanel.tsx     # GitHub issues viewer
-│   │   ├── hooks/
-│   │   │   └── useSocket.ts       # Socket.IO hook
+│   │   ├── hooks/useLiveAgents.ts # Connected to real API (Port 7778)
+│   │   ├── components/            # Dashboard components
 │   │   └── App.tsx                # Main application
-│   └── package.json
-│
-├── backend/           # Node.js + Express + TypeScript
-│   ├── src/
-│   │   ├── services/
-│   │   │   ├── AgentManager.ts    # Agent process management
-│   │   │   ├── SystemMonitor.ts   # System metrics collection
-│   │   │   ├── TerminalManager.ts # Terminal output streaming
-│   │   │   └── GitHubService.ts   # GitHub API integration
-│   │   ├── routes/
-│   │   │   ├── agents.ts          # Agent API endpoints
-│   │   │   ├── system.ts          # System metrics endpoints
-│   │   │   └── github.ts          # GitHub API endpoints
-│   │   └── index.ts               # Main server + Socket.IO
-│   └── package.json
-│
-└── README.md
+├── servers/
+│   └── api_server.py             # Legacy Python server (keep for reference)
+└── deprecated/                    # 🚨 MOVED - All mocked services
+    ├── servers/                   # Former mocked JS servers
+    ├── infrastructure/            # Former mocked CloudFormation
+    └── README.md                  # Migration guide
 ```
 
-## Prerequisites
+## Quick Start 🚀
 
-- Node.js 18+ and npm
-- Python 3.8+ (for agent scripts)
-- GitHub CLI (`gh`) configured with authentication
+### Prerequisites
+- Python 3.8+ with `psutil` package
+- Node.js 18+ and npm (for frontend)
 - Windows or Unix-based OS
 
-## Installation
+### Start Real Agent System
 
-### Backend Setup
-
+1. **Start Real Agent Discovery Server:**
 ```bash
-cd agent-dashboard/backend
+cd na-agent-dashboard
+python real-agent-server.py
+# Server runs on http://localhost:7778
+```
+
+2. **Start Live Daemon Agents:**
+```bash
+# Terminal 1: QA Agent (runs every 30s)
+python simple-qa-daemon.py
+
+# Terminal 2: Business Agent (runs every 60s)  
+python simple-business-daemon.py
+
+# Terminal 3: Developer Agent (runs every 45s)
+python simple-dev-daemon.py
+```
+
+3. **Start Frontend Dashboard:**
+```bash
+cd mfe
 npm install
-```
-
-### Frontend Setup
-
-```bash
-cd agent-dashboard/frontend
-npm install
-```
-
-## Configuration
-
-### Backend Environment Variables
-
-Create `backend/.env`:
-
-```env
-PORT=3001
-FRONTEND_URL=http://localhost:5173
-NODE_ENV=development
-PROJECTS_DIR=E:/Projects
-```
-
-## Running the Dashboard
-
-### Start Backend Server
-
-```bash
-cd backend
 npm run dev
+# Frontend runs on http://localhost:3001
 ```
 
-The backend will start on http://localhost:3001
-
-### Start Frontend Development Server
+### Verify System Status
 
 ```bash
-cd frontend
-npm run dev
+# 1. Check Real Agent Discovery Server
+curl http://localhost:7778/health
+# Expected: {"status": "running", "agents_discovered": 237+}
+
+# 2. Check Active Daemon Agents
+curl http://localhost:7778/api/agents | grep -i daemon
+# Expected: Shows 3 daemon agents with "active" status
+
+# 3. Check Dashboard API
+curl http://localhost:7778/api/dashboard/agents
+# Expected: {"success": true, "totalAgents": 237+, "activeAgents": 5+}
 ```
-
-The frontend will start on http://localhost:5173
-
-## Available Agents
-
-The dashboard can monitor and control these agent types:
-
-1. **SDLC Iterator**: Iterates through develop→test→deploy→document cycle
-2. **Issue Monitor**: Monitors GitHub issues with agent-task labels
-3. **Service Agents**: Individual agents for each microservice
-   - NiroSubs agents (ns-auth, ns-dashboard, ns-payments)
-   - VisualForge agents (vf-audio, vf-video, vf-image)
-4. **Health Monitor**: Overall system health monitoring
 
 ## API Endpoints
 
-### Agent Management
-- `GET /api/agents` - List all agents
-- `GET /api/agents/:id` - Get agent details
-- `POST /api/agents/:id/start` - Start an agent
-- `POST /api/agents/:id/stop` - Stop an agent
-- `POST /api/agents/:id/restart` - Restart an agent
+### Real Agent Discovery Server (Port 7778) ✅
 
-### System Metrics
-- `GET /api/system/metrics` - Get system metrics
-- `GET /api/system/status` - Get system health status
-- `GET /api/system/detailed` - Get detailed system info
+| Endpoint | Method | Description |
+|----------|---------|-------------|
+| `/health` | GET | Server health check |
+| `/api/agents` | GET | All discovered agents (237+) |
+| `/api/dashboard/agents` | GET | Dashboard-formatted agent data |
+| `/api/dashboard/live-data` | GET | Live metrics and system data |
+| `/api/dashboard/data-sources` | GET | Data source status |
 
-### GitHub Integration
-- `GET /api/github/issues` - List issues
-- `POST /api/github/issues` - Create new issue
-- `POST /api/github/issues/:repo/:number/close` - Close issue
-- `POST /api/github/issues/:repo/:number/comment` - Add comment
+## Current System Status ✅
 
-## WebSocket Events
+- **✅ Real Agent Discovery**: 237+ agents discovered from filesystem
+- **✅ Live Daemon Agents**: 3 active daemon processes running tasks
+- **✅ Process Detection**: Enhanced status detection using `psutil`
+- **✅ Frontend Integration**: React dashboard connected to real API
+- **🚨 Mocked Services**: All deprecated and moved to `/deprecated/` folder
 
-### Client → Server
-- `terminal:subscribe` - Subscribe to agent terminal
-- `terminal:unsubscribe` - Unsubscribe from terminal
-- `terminal:input` - Send input to agent
-- `agent:start` - Start an agent
-- `agent:stop` - Stop an agent
-- `agent:restart` - Restart an agent
+## Migration from Mocked Services
 
-### Server → Client
-- `agents:status` - Agent status updates
-- `system:metrics` - System metrics updates
-- `terminal:data` - Terminal output data
-- `terminal:history` - Terminal history on connect
-- `agent:started` - Agent started notification
-- `agent:stopped` - Agent stopped notification
-- `agent:error` - Agent error notification
+**⚠️ If you were using the old mocked services (Port 7777), please migrate:**
 
-## Building for Production
-
-### Build Frontend
-
-```bash
-cd frontend
-npm run build
-```
-
-### Build Backend
-
-```bash
-cd backend
-npm run build
-```
-
-## Deployment
-
-The dashboard can be deployed to:
-
-1. **Local Machine**: Run directly on Windows/Mac/Linux
-2. **EC2 Instance**: Deploy to AWS EC2 for cloud access
-3. **Docker**: Containerize and deploy anywhere
-
-## Security Considerations
-
-- All repositories should be private
-- Use environment variables for sensitive data
-- Implement authentication before exposing to internet
-- Use HTTPS in production
-- Restrict CORS origins
+1. **Stop using Port 7777** - this served fake data
+2. **Use Port 7778** - this serves real agent discovery
+3. **Update your configuration** to point to the real agent server
+4. **See `/deprecated/README.md`** for detailed migration guide
 
 ## Troubleshooting
 
-### Agent won't start
-- Check Python is installed and in PATH
-- Verify agent script exists in E:/Projects
-- Check error messages in terminal output
+### Common Issues
 
-### Terminal not showing output
-- Ensure WebSocket connection is established
-- Check agent is running (status should be "running")
-- Verify process has stdout/stderr streams
+**Q: Dashboard shows no agents**
+```bash
+# Check if real-agent-server is running
+curl http://localhost:7778/health
+# If not working, restart with: python real-agent-server.py
+```
 
-### GitHub issues not loading
-- Ensure `gh` CLI is installed and authenticated
-- Check repository names are correct
-- Verify you have access to the repositories
+**Q: Daemon agents show as "dormant" instead of "active"**
+```bash
+# Ensure daemon agents are running
+ps aux | grep "daemon.py"
+# If none found, restart daemon agents
+```
 
-## Future Enhancements
+**Q: Frontend can't connect to API**
+```bash
+# Check frontend configuration
+cat mfe/.env.development
+# Should show: VITE_API_BASE_URL=http://localhost:7778
+```
 
-- [ ] Authentication and user management
-- [ ] Agent scheduling and automation
-- [ ] Metrics persistence and historical analysis
-- [ ] Alert and notification system
-- [ ] Multi-machine agent orchestration
-- [ ] Docker containerization
-- [ ] Kubernetes deployment support# GitFlow Test - Dev Environment Deployment
+## Development
+
+### Adding New Agent Types
+1. Create your agent `.py` file in one of the scanned directories
+2. Include 'agent' or 'daemon' in the filename  
+3. The discovery server will automatically detect it
+4. For daemon agents, implement a main loop for continuous operation
+
+### Discovery Paths
+The server scans these directories:
+- `E:\Projects\NiroAgent\na-business-service`
+- `E:\Projects\NiroAgent\na-autonomous-system`  
+- `E:\Projects\NiroAgent\na-agent-dashboard`
+
+## Contributing
+
+Before making changes:
+1. Test with the real agent system (Port 7778)
+2. Ensure your changes work with live daemon agents
+3. Update documentation if you add new features
+4. Do not use or reference deprecated mocked services
+
+---
+
+**🎉 Real Agent Discovery System is now active!**  
+*All mocked services have been deprecated and moved to `/deprecated/` folder.*

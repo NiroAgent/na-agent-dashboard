@@ -10,7 +10,7 @@
 - Configuration: ✅ Correctly configured to connect to EC2 API
 
 **Backend API (EC2)**
-- URL: http://98.81.93.132:7777
+- URL: http://localhost:7778
 - Status: ✅ Running and responding
 - Basic Functionality: ✅ 50 agents with real-time metrics
 
@@ -59,10 +59,10 @@
 
 ### Basic Functionality ✅
 ```bash
-curl http://98.81.93.132:7777/health
+curl http://localhost:7778/health
 # {"message": "Niro Agent API", "status": "running"}
 
-curl http://98.81.93.132:7777/api/agents | wc -c
+curl http://localhost:7778/api/agents | wc -c
 # 5488 characters (50 agents)
 ```
 
@@ -75,7 +75,7 @@ curl http://niro-agent-dashboard-dev-816454053517.s3-website-us-east-1.amazonaws
 ### Cross-Origin Connectivity ✅
 ```bash
 curl -H "Origin: http://niro-agent-dashboard-dev-816454053517.s3-website-us-east-1.amazonaws.com" \
-     http://98.81.93.132:7777/api/agents
+     http://localhost:7778/api/agents
 # Successfully returns agent data
 ```
 
@@ -139,8 +139,8 @@ The system architecture is production-ready with:
 
 ### Development Environment
 - **Frontend**: http://niro-agent-dashboard-dev-816454053517.s3-website-us-east-1.amazonaws.com/
-- **API Health**: http://98.81.93.132:7777/health
-- **Agent Data**: http://98.81.93.132:7777/api/agents
+- **API Health**: http://localhost:7778/health
+- **Agent Data**: http://localhost:7778/api/agents
 
 ### Staging Environment (Post-Deployment)
 - **API Health**: http://98.81.93.132:7778/health

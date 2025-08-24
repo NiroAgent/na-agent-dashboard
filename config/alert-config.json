@@ -1,0 +1,158 @@
+{
+  "rules": [
+    {
+      "name": "high_response_time",
+      "condition": "response_time_ms > threshold",
+      "threshold": 5000,
+      "duration": 60,
+      "level": "warning",
+      "channels": ["email", "slack"],
+      "cooldown": 300,
+      "enabled": true
+    },
+    {
+      "name": "agent_down",
+      "condition": "active_agents < threshold",
+      "threshold": 3,
+      "duration": 30,
+      "level": "critical",
+      "channels": ["email", "slack", "sns"],
+      "cooldown": 180,
+      "enabled": true
+    },
+    {
+      "name": "high_cpu",
+      "condition": "cpu_percent > threshold",
+      "threshold": 80,
+      "duration": 300,
+      "level": "warning",
+      "channels": ["email"],
+      "cooldown": 600,
+      "enabled": true
+    },
+    {
+      "name": "high_memory",
+      "condition": "memory_percent > threshold",
+      "threshold": 85,
+      "duration": 300,
+      "level": "warning", 
+      "channels": ["email"],
+      "cooldown": 600,
+      "enabled": true
+    },
+    {
+      "name": "system_critical",
+      "condition": "overall_health == 'critical'",
+      "threshold": 1,
+      "duration": 0,
+      "level": "emergency",
+      "channels": ["email", "slack", "sns", "pagerduty"],
+      "cooldown": 60,
+      "enabled": true
+    },
+    {
+      "name": "deprecated_service_running",
+      "condition": "deprecated_services_detected > threshold",
+      "threshold": 0,
+      "duration": 0,
+      "level": "warning",
+      "channels": ["email"],
+      "cooldown": 1800,
+      "enabled": true
+    },
+    {
+      "name": "disk_space_low",
+      "condition": "disk_percent > threshold",
+      "threshold": 85,
+      "duration": 300,
+      "level": "warning",
+      "channels": ["email", "slack"],
+      "cooldown": 3600,
+      "enabled": true
+    },
+    {
+      "name": "no_recent_tasks",
+      "condition": "total_tasks == 0",
+      "threshold": 0,
+      "duration": 1800,
+      "level": "warning",
+      "channels": ["email"],
+      "cooldown": 7200,
+      "enabled": true
+    }
+  ],
+  "channels": {
+    "email": {
+      "config": {
+        "smtp_server": "smtp.gmail.com",
+        "smtp_port": 587,
+        "username": "your-email@gmail.com",
+        "password": "your-app-password",
+        "from_email": "your-email@gmail.com",
+        "to_emails": [
+          "admin@yourcompany.com",
+          "devops@yourcompany.com"
+        ]
+      },
+      "enabled": false
+    },
+    "slack": {
+      "config": {
+        "webhook_url": "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK",
+        "channel": "#agent-alerts",
+        "username": "Agent Monitor Bot"
+      },
+      "enabled": false
+    },
+    "sns": {
+      "config": {
+        "topic_arn": "arn:aws:sns:us-east-1:123456789012:agent-monitoring-alerts",
+        "region": "us-east-1"
+      },
+      "enabled": false
+    },
+    "webhook": {
+      "config": {
+        "url": "https://your-webhook-endpoint.com/alerts",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer your-token"
+        }
+      },
+      "enabled": false
+    },
+    "pagerduty": {
+      "config": {
+        "integration_key": "your-pagerduty-integration-key",
+        "service_url": "https://events.pagerduty.com/v2/enqueue"
+      },
+      "enabled": false
+    }
+  },
+  "escalation": {
+    "enabled": true,
+    "rules": [
+      {
+        "level": "warning",
+        "escalate_after": 3600,
+        "escalate_to": "critical"
+      },
+      {
+        "level": "critical", 
+        "escalate_after": 1800,
+        "escalate_to": "emergency"
+      }
+    ]
+  },
+  "maintenance_windows": [
+    {
+      "name": "weekly_maintenance",
+      "start_time": "02:00",
+      "end_time": "04:00",
+      "days": ["Sunday"],
+      "timezone": "UTC",
+      "suppress_alerts": ["high_cpu", "high_memory"]
+    }
+  ]
+}
