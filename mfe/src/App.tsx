@@ -33,14 +33,16 @@ import { Toaster } from 'react-hot-toast';
 
 import AgentGrid from './components/AgentGrid';
 import EnhancedAgentGrid from './components/EnhancedAgentGrid';
+import AgentSearch from './components/AgentSearch';
 import PolicyDashboard from './components/PolicyDashboard';
 import ExternalDataStatus from './components/ExternalDataStatus';
 import SystemMetrics from './components/SystemMetrics';
 import TerminalView from './components/TerminalView';
 import IssuePanel from './components/IssuePanel';
 import { useSocket } from './hooks/useSocket';
-// Removed useExternalData import - only using real API data
+import { useLiveAgents } from './hooks/useLiveAgents';
 import { Agent, SystemInfo } from './types';
+import { LiveAgentMetrics } from './types/policy';
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:7778';
 
@@ -65,6 +67,7 @@ const darkTheme = createTheme({
 
 function App() {
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [filteredAgents, setFilteredAgents] = useState<LiveAgentMetrics[]>([]);
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [showTerminal, setShowTerminal] = useState(false);
@@ -72,7 +75,7 @@ function App() {
   const [activeTab, setActiveTab] = useState(0);
   
   const socket = useSocket();
-  // Removed external data hook - only using real API data from /api/agents
+  const { agents: liveAgents, loading: liveLoading, error: liveError, refreshAgents } = useLiveAgents();
 
   // Fetch agents data via HTTP
   const fetchAgents = async () => {
@@ -101,7 +104,7 @@ function App() {
     if (!socket) return;
 
     socket.on('agents:status', (data: Agent[]) => {
-      setAgents(data);
+      setAgents(Array.isArray(data) ? data : []);
     });
 
     socket.on('system:metrics', (data: SystemInfo) => {
@@ -210,8 +213,8 @@ function App() {
     }
   };
 
-  const runningAgents = agents.filter((a: any) => a.status === 'idle' || a.status === 'busy' || a.status === 'active').length;
-  const totalAgents = agents.length;
+  const runningAgents = liveAgents.filter((a: any) => a.status === 'idle' || a.status === 'busy' || a.status === 'active').length;
+  const totalAgents = liveAgents.length;
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
@@ -294,7 +297,7 @@ function App() {
                 color="inherit" 
                 onClick={() => {
                   fetchAgents();
-                  window.location.reload();
+                  refreshAgents();
                 }}
               >
                 <RefreshIcon />
@@ -422,7 +425,7 @@ function App() {
               {/* External Data Alert - Removed since using only real data */}
 
               {/* Live System Metrics from Real Agent Data */}
-              {agents.length > 0 && (
+              {liveAgents.length > 0 && (
                 <Grid item xs={12}>
                   <Paper sx={{ p: 2, background: '#1a1a1a', border: '1px solid #333' }}>
                     <Typography variant="h6" gutterBottom sx={{ color: '#00ff88', display: 'flex', alignItems: 'center' }}>
@@ -432,13 +435,13 @@ function App() {
                     <Grid container spacing={2}>
                       <Grid item xs={3}>
                         <Paper sx={{ p: 2, textAlign: 'center', background: '#0a0a0a' }}>
-                          <Typography variant="h4" color="primary">{agents.length > 0 ? (agents.reduce((sum, a) => sum + ((a as any).cpuUsage || a.metrics?.cpuUsage || 0), 0) / agents.length).toFixed(1) : 0}%</Typography>
+                          <Typography variant="h4" color="primary">{liveAgents.length > 0 ? (liveAgents.reduce((sum, a) => sum + (a.metrics?.cpuUsage || 0), 0) / liveAgents.length).toFixed(1) : 0}%</Typography>
                           <Typography variant="caption">Average CPU</Typography>
                         </Paper>
                       </Grid>
                       <Grid item xs={3}>
                         <Paper sx={{ p: 2, textAlign: 'center', background: '#0a0a0a' }}>
-                          <Typography variant="h4" color="primary">{agents.length > 0 ? (agents.reduce((sum, a) => sum + ((a as any).memoryUsage || a.metrics?.memoryUsage || 0), 0) / agents.length).toFixed(1) : 0}%</Typography>
+                          <Typography variant="h4" color="primary">{liveAgents.length > 0 ? (liveAgents.reduce((sum, a) => sum + (a.metrics?.memoryUsage || 0), 0) / liveAgents.length).toFixed(1) : 0}%</Typography>
                           <Typography variant="caption">Average Memory</Typography>
                         </Paper>
                       </Grid>
@@ -450,7 +453,7 @@ function App() {
                       </Grid>
                       <Grid item xs={3}>
                         <Paper sx={{ p: 2, textAlign: 'center', background: '#0a0a0a' }}>
-                          <Typography variant="h4" color="primary">{agents.reduce((sum, a) => sum + ((a as any).taskCount || 0), 0)}</Typography>
+                          <Typography variant="h4" color="primary">{liveAgents.reduce((sum, a) => sum + (a.metrics?.tasksCompleted || 0), 0)}</Typography>
                           <Typography variant="caption">Total Tasks</Typography>
                         </Paper>
                       </Grid>
@@ -466,29 +469,47 @@ function App() {
                 </Grid>
               )}
 
-              {/* Enhanced Agent Grid with External Data */}
+              {/* Enhanced Agent Grid with Search */}
               <Grid item xs={12} lg={showTerminal ? 6 : 12}>
                 <Paper sx={{ p: 2, background: '#1a1a1a', border: '1px solid #333' }}>
                   <Typography variant="h6" gutterBottom sx={{ color: '#00ff88', display: 'flex', alignItems: 'center' }}>
                     <AnalyticsIcon sx={{ mr: 1 }} />
-                    Live Agents from Real API ({runningAgents} running)
+                    Live Agents from Real API ({filteredAgents.length}/{liveAgents.length} shown)
                   </Typography>
                   
-                  {agents.length > 0 ? (
-                    <AgentGrid 
-                      agents={agents}
-                      onStart={handleStartAgent}
-                      onStop={handleStopAgent}
-                      onRestart={handleRestartAgent}
-                      onViewTerminal={handleViewTerminal}
-                    />
+                  {liveAgents.length > 0 ? (
+                    <>
+                      <AgentSearch
+                        agents={liveAgents}
+                        onFilteredAgents={setFilteredAgents}
+                      />
+                      <EnhancedAgentGrid 
+                        agents={filteredAgents}
+                        onStart={handleStartAgent}
+                        onStop={handleStopAgent}
+                        onRestart={handleRestartAgent}
+                        onViewTerminal={handleViewTerminal}
+                      />
+                    </>
+                  ) : liveLoading ? (
+                    <Alert severity="info" sx={{ backgroundColor: '#1a2a1a', color: '#4caf50' }}>
+                      <Typography variant="body2">
+                        Loading live agent data...
+                      </Typography>
+                    </Alert>
+                  ) : liveError ? (
+                    <Alert severity="error" sx={{ backgroundColor: '#2a1a1a', color: '#f44336' }}>
+                      <Typography variant="body2">
+                        Error loading agents: {liveError}
+                      </Typography>
+                    </Alert>
                   ) : (
                     <Alert severity="info" sx={{ backgroundColor: '#1a2a1a', color: '#4caf50' }}>
                       <Typography variant="body2">
-                        No external agents found. Configure your AWS credentials and external services to see live data.
+                        No agents found. Configure your API endpoints to see live data.
                       </Typography>
                       <Typography variant="caption">
-                        Expected sources: AWS EC2 instances, ECS tasks, external policy engine
+                        Expected sources: Real agent discovery API
                       </Typography>
                     </Alert>
                   )}

@@ -9,8 +9,18 @@ export const useSocket = () => {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
+    // Auto-detect API endpoint for socket connection
+    const hostname = window.location.hostname;
+    let socketUrl = SOCKET_URL;
+    
+    if (hostname.includes('niro-agent-dashboard-dev') || hostname.includes('s3-website')) {
+      // Production uses Lambda API without WebSocket support
+      console.log('Production environment detected - WebSocket disabled (Lambda API)');
+      return;
+    }
+
     // Create socket connection
-    const socketInstance = io(SOCKET_URL, {
+    const socketInstance = io(socketUrl, {
       transports: ['websocket'],
       reconnection: true,
       reconnectionAttempts: 5,

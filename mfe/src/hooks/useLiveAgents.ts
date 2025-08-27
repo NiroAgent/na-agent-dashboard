@@ -13,8 +13,8 @@ const getApiBaseUrl = () => {
   const hostname = window.location.hostname;
   
   if (hostname.includes('niro-agent-dashboard-dev') || hostname.includes('s3-website')) {
-    // Production environment - use TypeScript API
-    return 'http://localhost:7779';
+    // Production environment - use Lambda API endpoint
+    return 'https://b2u10y8xs6.execute-api.us-east-1.amazonaws.com/prod';
   }
   
   // Local development - use TypeScript API with real agent integration

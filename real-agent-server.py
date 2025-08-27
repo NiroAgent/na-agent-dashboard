@@ -355,12 +355,27 @@ class SimpleHTTPHandler(http.server.BaseHTTPRequestHandler):
 if __name__ == '__main__':
     print("Starting Real Agent Discovery Server...")
     print(f"Port: 7778 (Real Agents)")
+    print(f"Found {len(agent_discovery.agents)} real agents from filesystem")
     print(f"Scanning paths: {AGENT_PATHS}")
     print("Server starting...")
     
-    if FLASK_AVAILABLE:
-        app.run(host='0.0.0.0', port=7778, debug=False)
-    else:
-        print("Using simple HTTP server (Flask not available)")
-        with socketserver.TCPServer(("0.0.0.0", 7778), SimpleHTTPHandler) as httpd:
-            httpd.serve_forever()
+    try:
+        if FLASK_AVAILABLE:
+            print("Using Flask server with improved error handling")
+            app.run(host='127.0.0.1', port=7778, debug=False, threaded=True, use_reloader=False)
+        else:
+            print("Using simple HTTP server (Flask not available)")
+            with socketserver.TCPServer(("127.0.0.1", 7778), SimpleHTTPHandler) as httpd:
+                print("Server running on http://127.0.0.1:7778")
+                httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("\nServer stopped by user")
+    except OSError as e:
+        if "Address already in use" in str(e):
+            print(f"Error: Port 7778 is already in use. Please stop existing server first.")
+        else:
+            print(f"Network error: {e}")
+    except Exception as e:
+        print(f"Server error: {e}")
+        import traceback
+        traceback.print_exc()

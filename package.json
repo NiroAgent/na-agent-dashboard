@@ -18,7 +18,11 @@
     "start": "cd backend && npm start",
     "start:local": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
     "start:backend": "cd backend && npm start",
-    "start:frontend": "cd frontend && npm run preview"
+    "start:frontend": "cd frontend && npm run preview",
+    "test:frontend": "bash scripts/test-frontend-errors.sh",
+    "test:api": "bash scripts/test-api-integration.sh",
+    "test:all": "npm run test:api && npm run test:frontend",
+    "health": "npm run test:all"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",
